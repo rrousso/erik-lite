@@ -46,9 +46,6 @@ public class StanzaCharacter {
     @Column(name = "presence_status", length = 20)
     private String presenceStatus = "background"; // present, potential, background
 
-    @Column(name = "current_location", length = 200)
-    private String currentLocation;
-
     // === USER-ONLY FIELDS ===
     @Column(name = "public_role", length = 500)
     private String publicRole;
@@ -143,10 +140,6 @@ public class StanzaCharacter {
 
         if (goals != null && goals.length > 0) {
             sb.append("Goals: ").append(String.join(", ", goals)).append("\n");
-        }
-
-        if (currentLocation != null && !currentLocation.isEmpty()) {
-            sb.append("Location: ").append(currentLocation).append("\n");
         }
 
         // Blueprint

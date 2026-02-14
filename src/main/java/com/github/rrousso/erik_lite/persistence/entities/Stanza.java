@@ -150,11 +150,19 @@ public class Stanza {
     }
 
     public Beat startNextBeat(String transitionContext) {
+        Beat previous = getCurrentBeat();
         closeCurrentBeat();
         this.currentBeat++;
 
         Beat newBeat = new Beat(this, this.currentBeat, this.currentExchange + 1);
         newBeat.setTransitionContext(transitionContext);
+
+        // Carry forward location — new beat is at the same place unless changed later
+        if (previous != null && previous.hasLocation()) {
+            newBeat.setLocationName(previous.getLocationName());
+            newBeat.setLocationDescription(previous.getLocationDescription());
+        }
+
         beats.add(newBeat);
         return newBeat;
     }
@@ -356,9 +364,17 @@ public class Stanza {
             sb.append("\n");
         }
 
-        // 6. WORLD CONTEXT
+        // 6. CURRENT LOCATION (from active beat)
+        Beat currentBeat = getCurrentBeat();
+        if (currentBeat != null && currentBeat.hasLocation()) {
+            sb.append("=== CURRENT LOCATION ===\n\n");
+            sb.append(currentBeat.getLocationForNarrator()).append("\n\n");
+        }
+
+        // 7. WORLD CONTEXT
         if (hasWorldContext()) {
-            sb.append("=== WORLD STATE ===\n\n");
+            sb.append("=== WORLD CONTEXT ===\n\n");
+            if (tone != null && !tone.isEmpty()) sb.append("Tone: ").append(tone).append("\n");
             if (timeContext != null) sb.append("Time: ").append(timeContext).append("\n");
             if (worldState != null) sb.append("State: ").append(worldState).append("\n");
             if (worldRules != null && worldRules.length > 0) {
@@ -370,7 +386,7 @@ public class Stanza {
         return sb.toString();
     }
 
-    /**
+	/**
      * Format completed beat summaries as plain text.
      */
     public String formatCompletedBeatSummaries() {
@@ -391,7 +407,8 @@ public class Stanza {
     }
 
     private boolean hasWorldContext() {
-        return timeContext != null || worldState != null ||
+        return (tone != null && !tone.isEmpty()) ||
+                timeContext != null || worldState != null ||
                 (worldRules != null && worldRules.length > 0);
     }
 }

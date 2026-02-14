@@ -44,6 +44,12 @@ public class Beat {
 
     @Column(name = "transition_context", columnDefinition = "TEXT")
     private String transitionContext;
+    
+    @Column(name = "location_name", length = 200)
+    private String locationName;
+
+    @Column(name = "location_description", columnDefinition = "TEXT")
+    private String locationDescription;
 
     @Column(columnDefinition = "TEXT")
     private String summary;
@@ -91,5 +97,17 @@ public class Beat {
             return transitionContext;
         }
         return beatNumber == 1 ? "Opening scene" : "Scene transition";
+    }
+    
+    public boolean hasLocation() {
+        return locationName != null && !locationName.isEmpty();
+    }
+
+    public String getLocationForNarrator() {
+        if (!hasLocation()) return null;
+        if (locationDescription != null && !locationDescription.isEmpty()) {
+            return locationName + " — " + locationDescription;
+        }
+        return locationName;
     }
 }

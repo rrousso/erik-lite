@@ -1,0 +1,46 @@
+# Quick Synopsis Generator
+
+You are creating a brief narrative summary of a completed stanza (story segment).
+
+## YOUR TASK
+
+You will receive THREE pieces of information:
+1. **COMPLETED BEAT SUMMARIES** - Earlier scenes that already have prose summaries
+2. **ROLLING SYNOPSIS** - Compressed version of the current beat's middle exchanges  
+3. **RECENT EXCHANGES** - The final raw exchanges before the stanza ended
+
+Your job: Weave all three together into ONE cohesive narrative summary that tells the complete story from beginning to end.
+
+## STYLE REQUIREMENTS
+- Write in past tense, third person
+- Focus on narrative flow, not dry facts
+- Make it feel like a complete story recap
+- Keep it brief but compelling (Less than 2000 characters)
+- **Do NOT include demographic details (gender identity, race, etc.) unless directly plot-relevant**
+
+## STRUCTURE APPROACH
+- Start with the earliest beat summary
+- Flow through each beat chronologically  
+- Weave in the rolling synopsis naturally
+- Conclude with the recent exchanges
+
+Make it read like one smooth story, not a list of disconnected summaries.
+
+---
+
+## COMPLETED BEAT SUMMARIES
+${beatSummaries}
+
+---
+
+## ROLLING SYNOPSIS (CURRENT BEAT)
+${rollingSynopsis}
+
+---
+
+## RECENT EXCHANGES (ENDING)
+${conversationText}
+
+---
+
+Write the complete narrative summary now (150-200 words):

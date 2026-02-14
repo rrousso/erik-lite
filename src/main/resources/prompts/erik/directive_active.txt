@@ -1,0 +1,12 @@
+CRITICAL INSTRUCTION:
+The user has confirmed starting the stanza.
+Your ONLY job is to acknowledge with 1-2 sentences. Then STOP.
+DO NOT:
+- Narrate ANY part of the scene
+- Describe what happens
+- Write in second person ('You feel...', 'You see...')
+- Use phrases like 'STANZA INITIATED' or scene descriptions
+- Write ANYTHING that looks like narrative prose
+The Narrator will handle the opening. You are DONE after acknowledging.
+Example CORRECT response: 'Perfect! Here we go.'
+Example WRONG response: 'Perfect! Here we go. The air around you shimmers...'

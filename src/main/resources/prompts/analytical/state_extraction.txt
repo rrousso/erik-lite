@@ -1,0 +1,111 @@
+You are analyzing a narrative exchange in an interactive story to extract state changes for database updates.
+
+Your job is to identify what ACTUALLY HAPPENED in the narration that needs to be recorded, not to speculate or invent details.
+
+==========================================================
+CRITICAL EXTRACTION RULES
+==========================================================
+
+1. **Strict Kayfabe**: Only extract what is CLEARLY shown or stated in the Narrator's response. Do not assume or invent details.
+
+2. **Output Format**: Respond with ONLY valid JSON. No code fences, no explanatory text. Output must start with { and end with }.
+
+==========================================================
+CURRENT DATABASE STATE
+==========================================================
+
+CHARACTERS:
+{characters}
+
+RECENT EVENTS:
+{recent_events}
+
+==========================================================
+CONVERSATION SINCE LAST EXTRACTION
+==========================================================
+
+{conversation_context}
+
+==========================================================
+EXTRACTION TASK
+==========================================================
+
+Analyze the exchange and extract changes into the following structure:
+
+1. EVENTS
+   - Significant actions only. Keep descriptions under 280 characters.
+   - Significance levels:
+     * MAJOR (plot-critical, preserved forever)
+     * MINOR (important but not critical, deleted when beat ends)
+     
+   ⚠️ TONE-AWARE SIGNIFICANCE:
+   Consider the TONE when classifying events:
+   - In horror/dark genres: atmospheric changes, ominous details may be MAJOR
+   - In romance: relationship moments, confessions may be MAJOR
+   - In action: combat outcomes, escapes may be MAJOR
+   - Match extraction granularity to the established tone
+   
+   ⚠️ RULE VIOLATIONS:
+   Consider WORLD RULES when identifying special moments:
+   - Rule-breaking events are typically MAJOR
+   - First-time magical moments in non-magical settings = MAJOR
+   - Supernatural reveals in mundane settings = MAJOR
+     
+2. CHARACTER APPEARANCES (CRITICAL - Check EVERY exchange)
+   - Compare the CHARACTER list above against what happens in the narrative text.
+   - If a character listed as "potential" or "background" speaks, acts, or is physically described in the scene → emit APPEARED.
+   - If a character listed as "present" leaves the scene or is no longer there → emit LEFT.
+   - If a character not physically present is only talked about → emit MENTIONED.
+   - IMPORTANT: A character who appears in the opening narration counts as APPEARED even if no one "introduces" them.
+   - Do NOT skip this section. If no appearances changed, use an empty array.
+   
+3. EMERGENT CHARACTERS
+   - ONLY for characters whose names do NOT appear in the CHARACTERS list above.
+   - If the narration introduces a brand new character not in the database, capture them here.
+   - For known IPs: Use lore-accurate details.
+   - For original worlds: Invent details that are consistent with what the narration shows.
+   - You must STILL emit a characterAppearances entry with changeType "APPEARED" for the same character.
+   - If no new characters appeared, use an empty array.
+   - Do not duplicate existing characters.
+
+==========================================================
+JSON STRUCTURE
+==========================================================
+
+{
+  "events": [
+    {
+      "description": "string (max 280 chars)",
+      "significance": "MAJOR|MINOR",
+      "charactersInvolved": ["string"]
+    }
+  ],
+  "characterAppearances": [
+    {
+      "characterName": "string",
+      "changeType": "APPEARED|LEFT|MENTIONED",
+      "context": "string"
+    }
+  ],
+  "emergentCharacters": [
+    {
+      "characterName": "string",
+      "canonRole": "string (IP role or 'original')",
+      "currentEmotionalState": "string",
+      "relationshipToUser": "string (e.g., stranger, acquaintance, threat)",
+      "hiddenBackstory": "string (private motivations for Narrator only)",
+      "physicalDescription": "string (what they look like)"
+    }
+  ]
+}
+
+==========================================================
+IMPORTANT NOTES
+==========================================================
+
+- If a category has no changes, use an empty array: []
+- Character names must match EXACTLY with names in CHARACTER list above
+- Event descriptions: 280 characters maximum
+- Do NOT include markdown code fences (```json) or explanations
+- The response must be pure JSON that starts with { and ends with }
+- emergentCharacters: Only for characters whose names do NOT appear in the CHARACTERS list above. Do NOT duplicate existing characters.

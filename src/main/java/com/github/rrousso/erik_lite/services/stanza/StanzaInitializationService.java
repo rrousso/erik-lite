@@ -62,7 +62,7 @@ public class StanzaInitializationService {
 
         String planningContext = buildPlanningContext(voidHistory, loadedStanza);
         String userPersona = configService.getUserPersona();
-        String initPrompt = promptLoader.load("architect/initialization_prompt.txt");
+        String initPrompt = promptLoader.load("analytical/initialization_prompt.txt");
         String fullPrompt = buildFullPrompt(initPrompt, userPersona, planningContext);
 
         log.info("[Initialization] Calling analytical model for initialization...");

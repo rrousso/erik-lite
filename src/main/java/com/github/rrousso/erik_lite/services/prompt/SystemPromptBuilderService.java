@@ -46,6 +46,8 @@ public class SystemPromptBuilderService {
     private String changeDistillerPrompt;
     private String flagDetectionPrompt;
     private String rollingSynopsisPrompt;
+    private String voidActiveDirective;
+    private String extractionPrompt;
 
     public SystemPromptBuilderService(PromptLoaderService promptLoader) {
         this.promptLoader = promptLoader;
@@ -65,7 +67,8 @@ public class SystemPromptBuilderService {
         changeDistillerPrompt = promptLoader.load("analytical/changes_distiller.txt");
         flagDetectionPrompt = promptLoader.load("analytical/flag_detection.txt");
         rollingSynopsisPrompt = promptLoader.load("analytical/rolling_synopsis.txt");
-        // TODO: extraction prompt needs rework for erik-lite (no facts/tensions)
+        voidActiveDirective = promptLoader.load("erik/directive_active.txt");
+        extractionPrompt = promptLoader.load("analytical/state_extraction.txt");
         log.info("[System] Prompts loaded successfully");
 
         initializePromptsDirectory();
@@ -161,12 +164,9 @@ public class SystemPromptBuilderService {
 
     /**
      * Build prompt for extraction phase.
-     * TODO: Rework for erik-lite — extraction now covers events + characters only (no facts/tensions).
      */
     public String buildExtractionPrompt() {
-        // Will be loaded from a new extraction prompt template in Step 6
-        throw new UnsupportedOperationException(
-                "Extraction prompt not yet ported to erik-lite — needs rework without facts/tensions");
+        return extractionPrompt;
     }
 
     // =========================================================================
@@ -202,21 +202,9 @@ public class SystemPromptBuilderService {
         return composer.build();
     }
 
-    // TODO: Extract this hardcoded string into a prompt template file (Step 6)
     private String buildActiveStatusContext() {
         return new PromptComposer()
-                .section("CRITICAL INSTRUCTION:\n\n" +
-                        "The user has confirmed starting the stanza.\n\n" +
-                        "Your ONLY job is to acknowledge with 1-2 sentences. Then STOP.\n\n" +
-                        "DO NOT:\n" +
-                        "- Narrate ANY part of the scene\n" +
-                        "- Describe what happens\n" +
-                        "- Write in second person ('You feel...', 'You see...')\n" +
-                        "- Use phrases like 'STANZA INITIATED' or scene descriptions\n" +
-                        "- Write ANYTHING that looks like narrative prose\n\n" +
-                        "The Narrator will handle the opening. You are DONE after acknowledging.\n\n" +
-                        "Example CORRECT response: 'Perfect! Here we go.'\n" +
-                        "Example WRONG response: 'Perfect! Here we go. [scene description]'")
+                .section(voidActiveDirective)
                 .build();
     }
 

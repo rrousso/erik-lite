@@ -18,6 +18,7 @@ import com.github.rrousso.erik_lite.persistence.entities.Stanza;
 import com.github.rrousso.erik_lite.persistence.entities.StanzaCharacter;
 import com.github.rrousso.erik_lite.persistence.entities.StanzaEvent;
 import com.github.rrousso.erik_lite.services.llm.LLMClientService;
+import com.github.rrousso.erik_lite.services.prompt.SystemPromptBuilderService;
 import com.github.rrousso.erik_lite.util.JsonCleanupUtil;
 
 /**
@@ -45,10 +46,13 @@ public class StanzaExtractionService {
 
     private final LLMClientService llmClient;
     private final ExtractionConfig extractionConfig;
+    private final SystemPromptBuilderService promptBuilder;
 
-    public StanzaExtractionService(LLMClientService llmClient, ExtractionConfig extractionConfig) {
+    public StanzaExtractionService(LLMClientService llmClient, ExtractionConfig extractionConfig,
+                                   SystemPromptBuilderService promptBuilder) {
         this.llmClient = llmClient;
         this.extractionConfig = extractionConfig;
+        this.promptBuilder = promptBuilder;
     }
 
     // =========================================================================
@@ -134,63 +138,41 @@ public class StanzaExtractionService {
     }
 
     // =========================================================================
-    // PROMPT BUILDING (inline — will move to template file in Step 6)
+    // PROMPT BUILDING 
     // =========================================================================
 
     private String buildExtractionPrompt(Stanza stanza, ConversationHistory history) {
         int frequency = extractionConfig.getFrequency();
         String conversationContext = history.getLastNExchangesForExtraction(Math.max(frequency, 1));
 
-        StringBuilder prompt = new StringBuilder();
-
-        prompt.append("You are analyzing a narrative exchange for state changes.\n\n");
-
-        // Current characters
-        prompt.append("=== CURRENT CHARACTERS ===\n");
+        // Format characters
+        StringBuilder characters = new StringBuilder();
         for (StanzaCharacter c : stanza.getCharacters()) {
-            prompt.append("- ").append(c.getName())
-                  .append(" (").append(c.getPresenceStatus()).append(")")
-                  .append(c.isUser() ? " [USER CHARACTER]" : "")
-                  .append("\n");
+            characters.append("- ").append(c.getName())
+                      .append(" (").append(c.getPresenceStatus()).append(")")
+                      .append(c.isUser() ? " [USER CHARACTER]" : "")
+                      .append("\n");
         }
-        prompt.append("\n");
 
-        // Recent events
-        prompt.append("=== RECENT EVENTS ===\n");
+        // Format recent events (last 5)
+        StringBuilder recentEvents = new StringBuilder();
         List<StanzaEvent> events = stanza.getEvents();
         int startIdx = Math.max(0, events.size() - 5);
         for (int i = startIdx; i < events.size(); i++) {
             StanzaEvent e = events.get(i);
-            prompt.append("- [Exchange ").append(e.getExchangeNumber()).append("] ")
-                  .append(e.getDescription())
-                  .append(" (").append(e.isMajor() ? "MAJOR" : "MINOR").append(")\n");
+            recentEvents.append("- [Exchange ").append(e.getExchangeNumber()).append("] ")
+                        .append(e.getDescription())
+                        .append(" (").append(e.isMajor() ? "MAJOR" : "MINOR").append(")\n");
         }
         if (events.isEmpty()) {
-            prompt.append("[No events recorded yet]\n");
+            recentEvents.append("[No events recorded yet]\n");
         }
-        prompt.append("\n");
 
-        // Conversation context
-        prompt.append("=== NARRATIVE EXCHANGES TO ANALYZE ===\n");
-        prompt.append(conversationContext);
-        prompt.append("\n\n");
-
-        // Instructions
-        prompt.append("Analyze the exchanges above and output a JSON object with these fields:\n");
-        prompt.append("{\n");
-        prompt.append("  \"events\": [{ \"description\": \"...\", \"significance\": \"MAJOR|MINOR\", \"charactersInvolved\": [\"name\", ...] }],\n");
-        prompt.append("  \"characterAppearances\": [{ \"characterName\": \"...\", \"changeType\": \"APPEARED|LEFT|MENTIONED\", \"context\": \"...\" }],\n");
-        prompt.append("  \"emergentCharacters\": [{ \"characterName\": \"...\", \"canonRole\": \"...\", \"currentEmotionalState\": \"...\", ");
-        prompt.append("\"relationshipToUser\": \"...\", \"hiddenBackstory\": \"...\", \"physicalDescription\": \"...\" }]\n");
-        prompt.append("}\n\n");
-        prompt.append("Rules:\n");
-        prompt.append("- Events: Record things that HAPPENED. Max 280 chars per description. Mark story-critical events as MAJOR.\n");
-        prompt.append("- Character appearances: Only when characters ENTER, LEAVE, or are MENTIONED for the first time.\n");
-        prompt.append("- Emergent characters: Only for NEW characters not in the current characters list above.\n");
-        prompt.append("- If nothing changed, return empty arrays.\n");
-        prompt.append("- Output ONLY valid JSON. No markdown, no explanation.\n");
-
-        return prompt.toString();
+        // Fill template placeholders
+        return promptBuilder.buildExtractionPrompt()
+                .replace("{characters}", characters.toString())
+                .replace("{recent_events}", recentEvents.toString())
+                .replace("{conversation_context}", conversationContext);
     }
 
     // =========================================================================

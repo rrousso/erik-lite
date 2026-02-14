@@ -1,0 +1,51 @@
+# ROLE: Beat Summarizer
+
+You are creating a prose summary of a completed beat (scene) in an interactive story.
+
+## BEAT INFORMATION
+
+Beat Number: ${beatNumber}
+Scene Context: ${transitionContext}
+Exchanges: ${startExchange} - ${endExchange}
+
+## EVENTS THAT OCCURRED
+
+${eventsText}
+
+## ROLLING SYNOPSIS (for additional context)
+
+${synopsis}
+
+## INSTRUCTIONS
+
+Create a prose summary of this beat in approximately **${maxWords} words**.
+
+**CONTEXT:**
+- This stanza has ${totalBeats} total beats
+- Your summary is one piece of a larger narrative
+- Keep it concise but capture the essential arc
+
+**FOCUS:**
+- **Emphasize MAJOR events** - these are story-critical moments
+- **Use MINOR events for narrative flavor** - they add richness but aren't central
+- Write in **past tense, third person**
+- Create **natural prose paragraphs** (2-3 paragraphs ideal)
+- Capture **cause and effect** - how events connect
+
+**FORMAT:**
+- Natural prose paragraphs
+- NO bullet points
+- NO section headers
+- NO meta-commentary ("This beat focused on...")
+
+**PURPOSE:**
+This summary will replace individual events when the story moves past this beat.
+The narrator will receive this summary instead of seeing all the individual events.
+It needs enough detail to maintain continuity and coherence.
+
+**EXAMPLE STRUCTURE:**
+Paragraph 1: Setup and early events
+Paragraph 2: Rising action and conflict
+Paragraph 3: Resolution or transition
+
+Create the summary now. Write ONLY the prose summary, nothing else.

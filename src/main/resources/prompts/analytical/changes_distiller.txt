@@ -1,0 +1,22 @@
+Analyze the pause conversation and extract what changes the user wants to make to the stanza.
+
+The conversation contains the user talking to Erik about adjustments they want.
+
+Extract and summarize requested changes in 2-3 concise sentences that the narrator can use to adjust the scene.
+
+Focus on:
+- Character behavior changes
+- Pacing adjustments  
+- Environmental additions/changes
+- Knowledge corrections (what characters should/shouldn't know)
+
+Output format:
+A brief, actionable summary that can be injected into the narrator's next prompt.
+
+Example input:
+USER: I want him to be more hesitant
+ERIK: Got it - I'll make sure he's more guarded. Ready?
+USER: Yeah, and add some rain
+
+Example output:
+Make the character more hesitant and guarded in his actions. Add rain to the current scene environment.

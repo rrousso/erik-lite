@@ -6,6 +6,7 @@ import com.github.rrousso.erik_lite.dto.initialization.BackgroundCharacter;
 import com.github.rrousso.erik_lite.dto.initialization.InitializedStanza;
 import com.github.rrousso.erik_lite.dto.initialization.UserCharacter;
 import com.github.rrousso.erik_lite.dto.initialization.WorldContext;
+import com.github.rrousso.erik_lite.persistence.entities.Beat;
 import com.github.rrousso.erik_lite.persistence.entities.Persona;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
 import com.github.rrousso.erik_lite.persistence.entities.StanzaCharacter;
@@ -78,6 +79,19 @@ public class StanzaPersistenceService {
 
         // 6. Initialize first beat and save
         stanza.initializeFirstBeat();
+        
+        // Set Beat 1 location from first relevant location
+        WorldContext world = initialized.getWorldContext();
+        if (world != null && world.getRelevantLocations() != null && !world.getRelevantLocations().isEmpty()) {
+            WorldContext.RelevantLocation firstLoc = world.getRelevantLocations().get(0);
+            Beat firstBeat = stanza.getCurrentBeat();
+            if (firstBeat != null && firstLoc.getName() != null) {
+                firstBeat.setLocationName(firstLoc.getName());
+                firstBeat.setLocationDescription(firstLoc.getDescription());
+                log.debug("[Persistence] Set Beat 1 location: {}", firstLoc.getName());
+            }
+        }
+        
         Stanza saved = stanzaRepository.save(stanza);
 
         log.info("[Persistence] Stanza saved with ID: {}, Characters: {}",
@@ -121,10 +135,9 @@ public class StanzaPersistenceService {
             }
         }
 
-        // Search fields
-        UserCharacter user = initialized.getUserCharacter();
-        if (user != null) {
-            stanza.setSetting(user.getCurrentLocation());
+        // Search field
+        if (world != null && world.getRelevantLocations() != null && !world.getRelevantLocations().isEmpty()) {
+            stanza.setSetting(world.getRelevantLocations().get(0).getName());
         }
 
         if (world != null && world.getCurrentWorldState() != null) {
@@ -146,7 +159,6 @@ public class StanzaPersistenceService {
         if (userData != null) {
             userChar.setPublicRole(userData.getPublicRole());
             userChar.setPrivateBackstory(userData.getPrivateBackstory());
-            userChar.setCurrentLocation(userData.getCurrentLocation());
 
             if (userData.getPubliclyVisibleTraits() != null) {
                 userChar.setVisibleTraits(userData.getPubliclyVisibleTraits().toArray(new String[0]));

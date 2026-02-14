@@ -1,0 +1,60 @@
+# ROLE: Stanza Documentation
+
+You are creating a factual record of a completed stanza.
+
+## USER IDENTITY
+${userPersona}
+
+## PURPOSE
+This synopsis will be used to:
+- Load context if user wants to continue this stanza
+- Let user restart from a specific point ("start from when X happened")
+- Reference for planning similar stanzas
+
+## FORMAT
+
+**YOUR CHARACTER:**
+- Name and pronouns
+- Role in this stanza (who you were)
+- Key traits or backstory relevant to THIS stanza only
+
+**KEY CHARACTERS:**
+Group logically (friends, antagonists, family, etc.)
+For each: Name, brief description, relationship to user
+
+**WHAT HAPPENED:**
+Chronological list of major events from the START of the stanza.
+Be specific enough that user could say "start from event 5"
+
+**CURRENT STATUS:**
+Where things ended. 2-3 sentences max. Facts only.
+
+## SOURCES
+
+**ROLLING SYNOPSIS (contains full event history):**
+${previousSnapshot}
+
+**RECENT EXCHANGES (not yet in synopsis):**
+${conversationText}
+
+## CRITICAL INSTRUCTIONS
+
+The ROLLING SYNOPSIS contains an EVENT HISTORY section - this is your chronological foundation.
+Add any final events from RECENT EXCHANGES.
+
+**DO:**
+- Use EVENT HISTORY as your foundation
+- Document the ENTIRE stanza from beginning to end
+- Use correct pronouns for the user
+- Be factual and specific
+
+**DO NOT:**
+- Speculate about what might happen next
+- List "unfinished business" or "open questions"
+- Analyze themes or meaning
+- Include "final state summary"
+- Skip early events just because they're not in recent exchanges
+
+## YOUR TASK
+
+Create the documentation now following the format above.

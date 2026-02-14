@@ -52,7 +52,7 @@ public class ConsoleRunner {
             String userInput = scanner.nextLine().trim();
 
             if (userInput.equalsIgnoreCase("exit")) {
-                System.out.println("\n[Erik] \"Oh! Heading out? It was wonderful creating with you. Come back anytime.\"\n");
+                System.out.println("\n[System] Exiting The Void.\n");
                 break;
             }
 

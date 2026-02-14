@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.github.rrousso.erik_lite.exceptions.configuration.MissingConfigException;
 import com.github.rrousso.erik_lite.persistence.entities.Persona;
 import com.github.rrousso.erik_lite.persistence.repositories.PersonaRepository;
+import com.github.rrousso.erik_lite.services.prompt.PromptLoaderService;
 
 import jakarta.annotation.PostConstruct;
 
@@ -29,10 +30,12 @@ public class PersonaService {
     private static final Logger log = LoggerFactory.getLogger(PersonaService.class);
 
     private final PersonaRepository personaRepository;
+    private final PromptLoaderService promptLoader;
     private String userPersona; // Cached formatted persona text
 
-    public PersonaService(PersonaRepository personaRepository) {
+    public PersonaService(PersonaRepository personaRepository, PromptLoaderService promptLoader) {
         this.personaRepository = personaRepository;
+        this.promptLoader = promptLoader;
     }
 
     @PostConstruct
@@ -148,15 +151,10 @@ public class PersonaService {
         appendFieldIf(sb, "Additional details", persona.getOtherDetails());
 
         String pronouns = hasValue(persona.getPronouns()) ? persona.getPronouns() : "not specified";
+        String pronounInstructions = promptLoader.load("user/pronoun_instructions.txt")
+                .replace("{pronouns}", pronouns);
 
-        sb.append("\n**CRITICAL PRONOUN USAGE:**\n");
-        sb.append("The user's pronouns are: ").append(pronouns).append("\n");
-        sb.append("ALL references to the user MUST use these pronouns.\n");
-        sb.append("Characters in scenes MUST use these pronouns when referring to or addressing the user.\n");
-        sb.append("Do NOT use 'they' unless the user's pronouns are specifically they/them.\n");
-        sb.append("Do NOT default to neutral pronouns - use the specified pronouns.\n");
-        sb.append("\nThis is the baseline for all scenes and dialogue.\n");
-        sb.append("Characters will interact with the user according to these details.\n");
+        sb.append("\n").append(pronounInstructions);
 
         return sb.toString();
     }

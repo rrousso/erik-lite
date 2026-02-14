@@ -1,0 +1,9 @@
+
+**CRITICAL PRONOUN USAGE:**
+The user's pronouns are: {pronouns}
+ALL references to the user MUST use these pronouns.
+Characters in scenes MUST use these pronouns when referring to or addressing the user.
+Do NOT use 'they' unless the user's pronouns are specifically they/them.
+Do NOT default to neutral pronouns - use the specified pronouns.
+This is the baseline for all scenes and dialogue.
+Characters will interact with the user according to these details.
