@@ -84,7 +84,7 @@ public class StanzaInitializationService {
         log.info("  - World: {}", stanza.getWorldIdentifier());
         log.info("  - Explicit characters: {}", stanza.getExplicitCharacters().size());
         log.info("  - Likely characters: {}", stanza.getLikelyCharacters().size());
-        log.info("  - Background characters: {}", stanza.getBackgroundCharacters().size());
+        log.info("  - Background characters: {}", stanza.getBackgroundCharacters().size()); 
 
         return stanza;
     }

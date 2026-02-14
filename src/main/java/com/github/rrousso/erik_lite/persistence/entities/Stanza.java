@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -165,6 +166,36 @@ public class Stanza {
         deleteMinorEventsFromBeat(current);
     }
 
+    /**
+     * Finalize a closed beat and start a new one.
+     * The beat must already be closed (endExchange set).
+     *
+     * @param closedBeat        The beat to finalize
+     * @param summary           The generated summary for the beat
+     * @param transitionContext  Context for the new beat
+     */
+    public void finalizeBeatAndStartNew(Beat closedBeat, String summary, String transitionContext) {
+        if (closedBeat.getEndExchange() == null) {
+            throw new IllegalStateException("Beat must be closed before finalizing");
+        }
+
+        closedBeat.setSummary(summary);
+        closedBeat.setCompletedAt(LocalDateTime.now());
+
+        deleteMinorEventsFromBeat(closedBeat);
+
+        int nextBeatNumber = beats.stream()
+                .map(Beat::getBeatNumber)
+                .max(Integer::compareTo)
+                .orElse(0) + 1;
+
+        this.currentBeat = nextBeatNumber;
+
+        Beat newBeat = new Beat(this, nextBeatNumber, this.currentExchange + 1);
+        newBeat.setTransitionContext(transitionContext);
+        beats.add(newBeat);
+    }
+    
     private void deleteMinorEventsFromBeat(Beat beat) {
         events.removeIf(event ->
                 event.getBeat() != null &&
@@ -207,6 +238,51 @@ public class Stanza {
         return characters.stream()
                 .filter(c -> "potential".equals(c.getPresenceStatus()))
                 .toList();
+    }
+    
+    /**
+     * Find a character by name (case-insensitive, with fuzzy matching).
+     *
+     * Matching priority:
+     * 1. Exact match (case-insensitive)
+     * 2. DB name starts with search name (e.g., "Rafael" matches "Rafael DeSantis")
+     * 3. Search name starts with DB name (e.g., "Rafael DeSantis" matches "Rafael")
+     *
+     * Returns empty if no match or if multiple ambiguous matches at the same priority.
+     */
+    public Optional<StanzaCharacter> findCharacterByName(String name) {
+        if (name == null || name.isBlank()) {
+            return Optional.empty();
+        }
+
+        String searchLower = name.trim().toLowerCase();
+
+        // Priority 1: Exact match
+        for (StanzaCharacter c : characters) {
+            if (c.getName().equalsIgnoreCase(searchLower)) {
+                return Optional.of(c);
+            }
+        }
+
+        // Priority 2: DB name starts with search name
+        List<StanzaCharacter> startsWith = characters.stream()
+                .filter(c -> c.getName().toLowerCase().startsWith(searchLower))
+                .toList();
+
+        if (startsWith.size() == 1) {
+            return Optional.of(startsWith.get(0));
+        }
+
+        // Priority 3: Search name starts with DB name
+        List<StanzaCharacter> reverseMatch = characters.stream()
+                .filter(c -> searchLower.startsWith(c.getName().toLowerCase()))
+                .toList();
+
+        if (reverseMatch.size() == 1) {
+            return Optional.of(reverseMatch.get(0));
+        }
+
+        return Optional.empty();
     }
 
     // === NARRATOR CONTEXT ===

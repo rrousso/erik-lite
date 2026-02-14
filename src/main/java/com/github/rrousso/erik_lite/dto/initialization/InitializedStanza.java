@@ -45,9 +45,6 @@ public class InitializedStanza {
     @JsonProperty("worldContext")
     private WorldContext worldContext;
 
-    @JsonProperty("clarificationsNeeded")
-    private List<String> clarificationsNeeded = new ArrayList<>();
-
     // === CONVENIENCE METHODS ===
 
     /**
@@ -86,13 +83,6 @@ public class InitializedStanza {
      */
     public boolean isKnownIP() {
         return worldIdentifier != null && !worldIdentifier.equalsIgnoreCase("original");
-    }
-
-    /**
-     * Check if there are clarifications needed before starting.
-     */
-    public boolean needsClarification() {
-        return clarificationsNeeded != null && !clarificationsNeeded.isEmpty();
     }
 
     // === FORMAT FOR NARRATOR ===
