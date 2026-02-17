@@ -17,8 +17,7 @@ public class EmergentCharacter {
     private String canonRole;
     private String currentEmotionalState;
     private String relationshipToUser;
-    private String hiddenBackstory;
-    private String physicalDescription;
+    private CharacterBlueprint blueprint;
 
     @Override
     public String toString() {

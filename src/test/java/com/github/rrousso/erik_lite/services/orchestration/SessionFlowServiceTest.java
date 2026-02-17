@@ -94,7 +94,7 @@ public class SessionFlowServiceTest {
     void shouldRouteToStartStrategyWhenStartFlagDetected() {
         String userInput = "Yes, let's begin!";
 
-        when(flagDetector.detect(userInput, state)).thenReturn(Flag.START_STANZA);
+        mockValidFlag(userInput, Flag.START_STANZA);
         when(strategyFactory.getStrategyForFlag(Flag.START_STANZA)).thenReturn(mockStrategy);
         when(mockStrategy.execute(userInput, state)).thenReturn("[System] Starting stanza...");
 
@@ -113,7 +113,7 @@ public class SessionFlowServiceTest {
     void shouldRouteToPauseStrategyWhenPauseFlagDetected() {
         String userInput = "((pause))";
 
-        when(flagDetector.detect(userInput, state)).thenReturn(Flag.PAUSE_STANZA);
+        mockValidFlag(userInput, Flag.PAUSE_STANZA);
         when(strategyFactory.getStrategyForFlag(Flag.PAUSE_STANZA)).thenReturn(mockStrategy);
         when(mockStrategy.execute(userInput, state)).thenReturn("[Erik] Sure, let's take a break.");
 
@@ -131,7 +131,7 @@ public class SessionFlowServiceTest {
     void shouldRouteToAbandonStrategyWhenAbandonFlagDetected() {
         String userInput = "((abandon))";
 
-        when(flagDetector.detect(userInput, state)).thenReturn(Flag.ABANDON_STANZA);
+        mockValidFlag(userInput, Flag.ABANDON_STANZA);
         when(strategyFactory.getStrategyForFlag(Flag.ABANDON_STANZA)).thenReturn(mockStrategy);
         when(mockStrategy.execute(userInput, state)).thenReturn("[System] Stanza abandoned.");
 
@@ -231,6 +231,7 @@ public class SessionFlowServiceTest {
         String userInput = "start";
 
         when(flagDetector.detect(userInput, state)).thenReturn(Flag.START_STANZA);
+        when(flagDetector.isValidFlagForStatus(eq(Flag.START_STANZA), any())).thenReturn(true);
         when(strategyFactory.getStrategyForFlag(Flag.START_STANZA))
             .thenThrow(new IllegalStateException("No strategy registered for flag"));
 
@@ -258,6 +259,7 @@ public class SessionFlowServiceTest {
 
         // Second call — flag detected
         when(flagDetector.detect("start", state)).thenReturn(Flag.START_STANZA);
+        when(flagDetector.isValidFlagForStatus(eq(Flag.START_STANZA), any())).thenReturn(true);
         when(strategyFactory.getStrategyForFlag(Flag.START_STANZA)).thenReturn(mockStrategy);
         when(mockStrategy.execute("start", state)).thenReturn("[System] Starting...");
 
@@ -266,6 +268,7 @@ public class SessionFlowServiceTest {
 
         // Third call — different flag
         when(flagDetector.detect("pause", state)).thenReturn(Flag.PAUSE_STANZA);
+        when(flagDetector.isValidFlagForStatus(eq(Flag.PAUSE_STANZA), any())).thenReturn(true);
         when(strategyFactory.getStrategyForFlag(Flag.PAUSE_STANZA)).thenReturn(mockStrategy);
         when(mockStrategy.execute("pause", state)).thenReturn("[Erik] Pausing...");
 
@@ -276,5 +279,15 @@ public class SessionFlowServiceTest {
         verify(strategyFactory, times(1)).getStrategyForConversation(state);
         verify(strategyFactory, times(1)).getStrategyForFlag(Flag.START_STANZA);
         verify(strategyFactory, times(1)).getStrategyForFlag(Flag.PAUSE_STANZA);
+    }
+    
+    /**
+     * Helper: mock flag detection returning a valid flag.
+     * Since FlagDetectorService is a mock, isValidFlagForStatus defaults to false.
+     * Tests that expect a flag to be routed must also stub the validity check.
+     */
+    private void mockValidFlag(String userInput, Flag flag) {
+        when(flagDetector.detect(userInput, state)).thenReturn(flag);
+        when(flagDetector.isValidFlagForStatus(eq(flag), any())).thenReturn(true);
     }
 }

@@ -265,7 +265,8 @@ public class StanzaExtractionServiceTest {
                 }
               ],
               "characterAppearances": [],
-              "emergentCharacters": []
+              "emergentCharacters": [],
+              "charactersStateChanges": []
             }
             """;
     }
@@ -281,7 +282,8 @@ public class StanzaExtractionServiceTest {
                   "context": "Derek stepped out of the shadows"
                 }
               ],
-              "emergentCharacters": []
+              "emergentCharacters": [],
+              "charactersStateChanges": []
             }
             """;
     }
@@ -303,10 +305,18 @@ public class StanzaExtractionServiceTest {
                   "canonRole": "original",
                   "currentEmotionalState": "guarded",
                   "relationshipToUser": "stranger",
-                  "hiddenBackstory": "A hunter tracking supernatural activity",
-                  "physicalDescription": "Tall, hooded figure with a scar across the jaw"
+                  "blueprint": {
+                    "tier1_essentials": "Mysterious Wanderer who speaks in cryptic riddles",
+                    "tier2_motivators": "Seeks revenge for a past betrayal; Fears being recognized",
+                    "tier3_anchors": [
+                      "Tall figure, approximately 6'2\\" with athletic build",
+                      "Worn leather cloak with deep hood obscuring face",
+                      "Distinctive scar running from left eyebrow to jawline"
+                    ]
+                  }
                 }
-              ]
+              ],
+              "charactersStateChanges": []
             }
             """;
     }
@@ -328,7 +338,8 @@ public class StanzaExtractionServiceTest {
                   "context": "Scott was already seated"
                 }
               ],
-              "emergentCharacters": []
+              "emergentCharacters": [],
+              "charactersStateChanges": []
             }
             """;
     }
@@ -338,7 +349,8 @@ public class StanzaExtractionServiceTest {
             {
               "events": [],
               "characterAppearances": [],
-              "emergentCharacters": []
+              "emergentCharacters": [],
+              "charactersStateChanges": []
             }
             """;
     }

@@ -10,6 +10,8 @@ import com.github.rrousso.erik_lite.config.ExtractionConfig;
 import com.github.rrousso.erik_lite.domain.enums.ModelType;
 import com.github.rrousso.erik_lite.domain.models.ConversationHistory;
 import com.github.rrousso.erik_lite.dto.extraction.CharacterAppearance;
+import com.github.rrousso.erik_lite.dto.extraction.CharacterBlueprint;
+import com.github.rrousso.erik_lite.dto.extraction.CharacterStateChange;
 import com.github.rrousso.erik_lite.dto.extraction.EmergentCharacter;
 import com.github.rrousso.erik_lite.dto.extraction.EventExtraction;
 import com.github.rrousso.erik_lite.dto.extraction.ExtractionResult;
@@ -127,6 +129,7 @@ public class StanzaExtractionService {
             applyEmergentCharacters(stanza, result.getEmergentCharacters());
             applyCharacterAppearances(stanza, result.getCharacterAppearances());
             applyEvents(stanza, result.getEvents());
+            applyCharacterStateChanges(stanza, result.getCharactersStateChanges());
 
             log.info("[Extraction] Successfully applied all changes");
             return true;
@@ -293,11 +296,83 @@ public class StanzaExtractionService {
                 emergent.getCurrentEmotionalState() != null ? emergent.getCurrentEmotionalState() : "Unknown");
             character.setRelationshipToUser(
                 emergent.getRelationshipToUser() != null ? emergent.getRelationshipToUser() : "Unknown");
-            character.setPrivateBackstory(emergent.getHiddenBackstory());
+            
+         // Handle blueprint (may be null if LLM didn't provide it)
+            CharacterBlueprint blueprint = emergent.getBlueprint();
+            if (blueprint != null) {
+                character.setBlueprintTier1Essentials(
+                    blueprint.getTier1Essentials() != null ? blueprint.getTier1Essentials() : "Unknown");
+                character.setBlueprintTier2Motivators(
+                    blueprint.getTier2Motivators() != null ? blueprint.getTier2Motivators() : "Unknown");
+                character.setBlueprintTier3Anchors(
+                    blueprint.getTier3Anchors() != null ? blueprint.getTier3Anchors() : new String[0]);
+            } else {
+                log.warn("[Extraction] Emergent character '{}' missing blueprint — using defaults", emergent.getCharacterName());
+                character.setBlueprintTier1Essentials("Unknown");
+                character.setBlueprintTier2Motivators("Unknown");
+                character.setBlueprintTier3Anchors(new String[0]);
+            }
 
             stanza.getCharacters().add(character);
 
             log.info("[Extraction] Created emergent character: {} ({})", emergent.getCharacterName(), character.getCanonRole());
+        }
+               
+    }
+    
+    private void applyCharacterStateChanges(Stanza stanza, List<CharacterStateChange> stateChanges) {
+        if (stateChanges == null || stateChanges.isEmpty()) return;
+
+        log.info("[Extraction] Applying {} character state changes", stateChanges.size());
+
+        for (CharacterStateChange change : stateChanges) {
+            if (change.getCharacterCurrentName() == null || change.getCharacterCurrentName().isBlank()) {
+                log.warn("[Extraction] Skipping state change with empty current name");
+                continue;
+            }
+
+            // Find the character by current name
+            Optional<StanzaCharacter> characterOpt = stanza.findCharacterByName(change.getCharacterCurrentName());
+            
+            if (characterOpt.isEmpty()) {
+                log.warn("[Extraction] Character '{}' not found for state change — skipping", 
+                    change.getCharacterCurrentName());
+                continue;
+            }
+
+            StanzaCharacter character = characterOpt.get();
+            boolean updated = false;
+
+            // Update name if provided (character was previously a placeholder)
+            if (change.getCharacterNewName() != null && !change.getCharacterNewName().isBlank()) {
+                String oldName = character.getName();
+                character.setName(change.getCharacterNewName());
+                log.info("[Extraction] Updated character name: '{}' -> '{}'", oldName, change.getCharacterNewName());
+                updated = true;
+            }
+
+            // Update emotional state if provided
+            if (change.getNewEmotionalState() != null && !change.getNewEmotionalState().isBlank()) {
+                String oldState = character.getEmotionalState();
+                character.setEmotionalState(change.getNewEmotionalState());
+                log.info("[Extraction] Updated emotional state for '{}': '{}' -> '{}'", 
+                    character.getName(), oldState, change.getNewEmotionalState());
+                updated = true;
+            }
+
+            // Update relationship if provided
+            if (change.getUpdatedRelationshipToUser() != null && !change.getUpdatedRelationshipToUser().isBlank()) {
+                String oldRelationship = character.getRelationshipToUser();
+                character.setRelationshipToUser(change.getUpdatedRelationshipToUser());
+                log.info("[Extraction] Updated relationship for '{}': '{}' -> '{}'", 
+                    character.getName(), oldRelationship, change.getUpdatedRelationshipToUser());
+                updated = true;
+            }
+
+            if (!updated) {
+                log.warn("[Extraction] State change for '{}' contained no actual updates", 
+                    change.getCharacterCurrentName());
+            }
         }
     }
 }

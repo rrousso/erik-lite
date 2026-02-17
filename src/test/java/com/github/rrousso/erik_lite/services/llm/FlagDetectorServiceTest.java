@@ -137,7 +137,7 @@ public class FlagDetectorServiceTest {
 
     @Test
     @DisplayName("Should return NONE when trying to START but stanza already completed")
-    void shouldReturnNoneWhenStartingButStanzaCompleted() throws Exception {
+    void shouldReturnRawStartWhenStartingButStanzaCompleted() throws Exception {
         SessionState state = new SessionState();
         state.setStanzaStatus(StanzaStatus.COMPLETED);
 
@@ -148,7 +148,7 @@ public class FlagDetectorServiceTest {
 
         Flag result = flagDetector.detect(userInput, state);
 
-        assertEquals(Flag.NONE, result);
+        assertEquals(Flag.START_STANZA, result);
     }
 
     // ========================================
@@ -188,8 +188,8 @@ public class FlagDetectorServiceTest {
     }
 
     @Test
-    @DisplayName("Should return NONE when trying to PAUSE but not in active stanza")
-    void shouldReturnNoneWhenPausingButNotActive() throws Exception {
+    @DisplayName("Should return raw PAUSE even when not in active stanza (validation is caller's job)")
+    void shouldReturnRawPauseEvenWhenNotActive() throws Exception {
         SessionState state = new SessionState();
         state.setStanzaStatus(StanzaStatus.NONE);
 
@@ -200,7 +200,7 @@ public class FlagDetectorServiceTest {
 
         Flag result = flagDetector.detect(userInput, state);
 
-        assertEquals(Flag.NONE, result);
+        assertEquals(Flag.PAUSE_STANZA, result);
     }
 
     // ========================================
@@ -224,8 +224,8 @@ public class FlagDetectorServiceTest {
     }
 
     @Test
-    @DisplayName("Should return NONE when trying to CONTINUE but not paused")
-    void shouldReturnNoneWhenContinuingButNotPaused() throws Exception {
+    @DisplayName("Should return raw CONTINUE even when not paused (validation is caller's job)")
+    void shouldReturnRawContinueEvenWhenNotPaused() throws Exception {
         SessionState state = new SessionState();
         state.setStanzaStatus(StanzaStatus.ACTIVE);
 
@@ -236,7 +236,7 @@ public class FlagDetectorServiceTest {
 
         Flag result = flagDetector.detect(userInput, state);
 
-        assertEquals(Flag.NONE, result);
+        assertEquals(Flag.CONTINUE_STANZA, result);
     }
 
     // ========================================

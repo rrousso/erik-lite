@@ -19,6 +19,7 @@ public class ExtractionResult {
     private List<EventExtraction> events = new ArrayList<>();
     private List<CharacterAppearance> characterAppearances = new ArrayList<>();
     private List<EmergentCharacter> emergentCharacters = new ArrayList<>();
+    private List<CharacterStateChange> charactersStateChanges = new ArrayList<>();
 
     // === Null-safe setters (override Lombok for defensive copies) ===
 
@@ -33,20 +34,30 @@ public class ExtractionResult {
     public void setEmergentCharacters(List<EmergentCharacter> emergentCharacters) {
         this.emergentCharacters = emergentCharacters != null ? emergentCharacters : new ArrayList<>();
     }
+    
+    public void setCharactersStateChanges(List<CharacterStateChange> charactersStateChanges) {
+        this.charactersStateChanges = charactersStateChanges != null ? charactersStateChanges : new ArrayList<>();
+    }
 
     // === Convenience methods ===
 
     public boolean hasAnyChanges() {
-        return !events.isEmpty() || !characterAppearances.isEmpty() || !emergentCharacters.isEmpty();
+        return !events.isEmpty() 
+            || !characterAppearances.isEmpty() 
+            || !emergentCharacters.isEmpty()
+            || !charactersStateChanges.isEmpty();
     }
 
     public int getTotalChangeCount() {
-        return events.size() + characterAppearances.size() + emergentCharacters.size();
+        return events.size() 
+            + characterAppearances.size() 
+            + emergentCharacters.size()
+            + charactersStateChanges.size();
     }
 
     @Override
     public String toString() {
-        return String.format("ExtractionResult[events=%d, appearances=%d, emergent=%d]",
-            events.size(), characterAppearances.size(), emergentCharacters.size());
+        return String.format("ExtractionResult[events=%d, appearances=%d, emergent=%d, states=%d]",
+            events.size(), characterAppearances.size(), emergentCharacters.size(), charactersStateChanges.size());
     }
 }

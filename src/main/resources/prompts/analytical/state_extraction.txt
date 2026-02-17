@@ -62,41 +62,70 @@ Analyze the exchange and extract changes into the following structure:
 3. EMERGENT CHARACTERS
    - ONLY for characters whose names do NOT appear in the CHARACTERS list above.
    - If the narration introduces a brand new character not in the database, capture them here.
+   - If the character's name is not explicitly stated, use a descriptive placeholder (e.g., "Mysterious Stranger").
    - For known IPs: Use lore-accurate details.
    - For original worlds: Invent details that are consistent with what the narration shows.
    - You must STILL emit a characterAppearances entry with changeType "APPEARED" for the same character.
    - If no new characters appeared, use an empty array.
    - Do not duplicate existing characters.
 
+4. CHARACTER STATE CHANGES
+   - ONLY for characters whose names do appear in the CHARACTERS list above.
+   - On characterCurrentName add the name as it appears in the CHARACTER list above.
+   - Compare the character's emotional state and relationship to the user before and after the narration.
+   - If the narration names a character that had a descriptive placeholder before, update their name on characterNewName.
+   - If the narration shows a clear change in emotional state or relationship to the user for an existing character, capture that here.
+   - For known IPs: Keep emotional states and relationships consistent with established lore.
+   - For original worlds: Keep emotional states and relationships consistent with what the narration shows.
+   - If no new changes for existing characters, use an empty array.
+
+
 ==========================================================
 JSON STRUCTURE
 ==========================================================
 
 {
-  "events": [
-    {
-      "description": "string (max 280 chars)",
-      "significance": "MAJOR|MINOR",
-      "charactersInvolved": ["string"]
-    }
-  ],
-  "characterAppearances": [
-    {
-      "characterName": "string",
-      "changeType": "APPEARED|LEFT|MENTIONED",
-      "context": "string"
-    }
-  ],
-  "emergentCharacters": [
-    {
-      "characterName": "string",
-      "canonRole": "string (IP role or 'original')",
-      "currentEmotionalState": "string",
-      "relationshipToUser": "string (e.g., stranger, acquaintance, threat)",
-      "hiddenBackstory": "string (private motivations for Narrator only)",
-      "physicalDescription": "string (what they look like)"
-    }
-  ]
+	"events": [
+		{
+			"description": "string (max 280 chars)",
+			"significance": "MAJOR|MINOR",
+			"charactersInvolved": [
+				"string"
+			]
+		}
+	],
+	"characterAppearances": [
+		{
+			"characterName": "string",
+			"changeType": "APPEARED|LEFT|MENTIONED",
+			"context": "string"
+		}
+	],
+	"emergentCharacters": [
+		{
+			"characterName": "string",
+			"canonRole": "string (IP role or 'original')",
+			"currentEmotionalState": "string",
+			"relationshipToUser": "string (e.g., stranger, acquaintance, threat)",
+			"blueprint": {
+				"tier1_essentials": "String (Archetype & Speech Pattern)",
+				"tier2_motivators": "String (Primary Goal & Major Fear)",
+				"tier3_anchors": [
+					"String (PHYSICAL detail you could draw)",
+					"String (clothing/accessories)",
+					"String (distinguishing physical feature)"
+				]
+			}
+		}
+	],
+	"charactersStateChanges": [
+		{
+			"characterCurrentName": "string",
+			"characterNewName": "string",
+			"newEmotionalState": "string",
+			"updatedRelationshipToUser": "string (e.g., stranger, acquaintance, threat)"
+		}
+	]
 }
 
 ==========================================================
@@ -109,3 +138,4 @@ IMPORTANT NOTES
 - Do NOT include markdown code fences (```json) or explanations
 - The response must be pure JSON that starts with { and ends with }
 - emergentCharacters: Only for characters whose names do NOT appear in the CHARACTERS list above. Do NOT duplicate existing characters.
+- charactersStateChanges: Only for characters whose names DO appear in the CHARACTERS list above. Capture clear emotional or relationship changes.

@@ -54,7 +54,7 @@ public class FlagDetectorService {
             String prompt = buildFlagDetectionPrompt(userInput, currentStatus, conversationContext);
 
             String response = llmClient.call(ModelType.ANALYTICAL, "", prompt);
-            Flag flag = parseResponse(response.trim(), currentStatus);
+            Flag flag = parseResponse(response.trim());
 
             log.debug("Flag detection - Input: \"{}\", Status: {}, Context: \"{}\", Response: \"{}\", Flag: {}",
                     userInput, currentStatus, conversationContext, response.trim(), flag);
@@ -126,42 +126,31 @@ public class FlagDetectorService {
         };
     }
 
-    /**
-     * Parse the LLM response into a Flag.
-     */
-    private Flag parseResponse(String response, StanzaStatus currentStatus) {
+    private Flag parseResponse(String response) {
         String cleanResponse = response.toUpperCase().trim();
-
-        Flag flag = Flag.NONE;
 
         // Check NEXT_BEAT first (most specific, avoids partial match on "END")
         if (cleanResponse.contains("NEXT_BEAT") || cleanResponse.contains("NEXT BEAT")) {
-            flag = Flag.NEXT_BEAT;
+            return Flag.NEXT_BEAT;
         } else if (cleanResponse.contains("START")) {
-            flag = Flag.START_STANZA;
+            return Flag.START_STANZA;
         } else if (cleanResponse.contains("PAUSE")) {
-            flag = Flag.PAUSE_STANZA;
+            return Flag.PAUSE_STANZA;
         } else if (cleanResponse.contains("CONTINUE")) {
-            flag = Flag.CONTINUE_STANZA;
+            return Flag.CONTINUE_STANZA;
         } else if (cleanResponse.contains("END")) {
-            flag = Flag.END_STANZA;
+            return Flag.END_STANZA;
         } else if (cleanResponse.contains("ABANDON")) {
-            flag = Flag.ABANDON_STANZA;
+            return Flag.ABANDON_STANZA;
         }
-
-        // Validate flag is legal for current status
-        if (!isValidFlagForStatus(flag, currentStatus)) {
-            log.warn("Detected flag {} is not valid for status {}. Returning NONE.", flag, currentStatus);
-            return Flag.NONE;
-        }
-
-        return flag;
+        return Flag.NONE;
     }
 
     /**
-     * Validate that a flag is available for the current status.
+     * Check if a flag is valid for the given status.
+     * Public so SessionFlowService can validate after detection.
      */
-    private boolean isValidFlagForStatus(Flag flag, StanzaStatus status) {
+    public boolean isValidFlagForStatus(Flag flag, StanzaStatus status) {
         return switch (status) {
             case NONE -> flag == Flag.START_STANZA || flag == Flag.NONE;
             case ACTIVE -> flag == Flag.PAUSE_STANZA || flag == Flag.END_STANZA ||

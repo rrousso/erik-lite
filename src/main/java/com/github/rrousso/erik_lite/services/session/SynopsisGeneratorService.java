@@ -2,6 +2,7 @@ package com.github.rrousso.erik_lite.services.session;
 
 import com.github.rrousso.erik_lite.domain.enums.ModelType;
 import com.github.rrousso.erik_lite.domain.models.ConversationHistory;
+import com.github.rrousso.erik_lite.persistence.entities.Beat;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
 import com.github.rrousso.erik_lite.persistence.entities.StanzaEvent;
 import com.github.rrousso.erik_lite.services.config.PersonaService;
@@ -92,7 +93,13 @@ public class SynopsisGeneratorService {
         }
 
         // Get events for old exchanges from database
-        int startExchange = 1;
+        Beat currentBeat = stanza.getCurrentBeat();
+        if (currentBeat == null) {
+             log.warn("[Synopsis] No current beat, skipping synopsis generation");
+            return history.getSynopsis();
+        }
+        
+        int startExchange = currentBeat.getStartExchange();
         int endExchange = oldMessagesCount;
 
         List<StanzaEvent> eventsToCondense = stanza.getEvents().stream()
