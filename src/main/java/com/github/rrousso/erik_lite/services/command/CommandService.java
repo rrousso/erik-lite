@@ -59,6 +59,48 @@ public class CommandService {
             default -> CommandResult.handled("[System] Unknown command: /" + command + ". Type /help for available commands.");
         };
     }
+    
+    /**
+     * Check if input looks like a command that's missing the slash prefix.
+     * Returns a helpful suggestion if it matches a known command pattern.
+     */
+    public CommandResult checkForMissingSlash(String userInput, SessionState state) {
+        if (userInput == null || userInput.trim().isEmpty()) {
+            return CommandResult.notACommand();
+        }
+        
+        String trimmed = userInput.trim();
+        String[] parts = trimmed.split("\\s+", 2);
+        String firstWord = parts[0].toLowerCase();
+        
+        // Check if first word matches any known command
+        boolean looksLikeCommand = switch (firstWord) {
+            case "help", "list", "search", "load", "clear", "debug" -> true;
+            default -> false;
+        };
+        
+        if (!looksLikeCommand) {
+            return CommandResult.notACommand();
+        }
+        
+        // Special case: "load" with a number is very likely a forgotten slash
+        if (firstWord.equals("load") && parts.length > 1) {
+            try {
+                Long.parseLong(parts[1].trim());
+                return CommandResult.handled(
+                    String.format("[System] Did you mean '/%s'? (Commands need a '/' prefix)\n", trimmed)
+                );
+            } catch (NumberFormatException e) {
+                // Not a number, might be conversational
+            }
+        }
+        
+        // For other command-like words, give a gentle hint
+        return CommandResult.handled(
+            String.format("[System] '%s' looks like a command. Did you mean '/%s'?\n" +
+                         "Type /help to see all commands.\n", trimmed, trimmed)
+        );
+    }
 
     // ========== COMMAND HANDLERS ==========
 

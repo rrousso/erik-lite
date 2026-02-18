@@ -65,6 +65,13 @@ public class ConsoleRunner {
                 continue;
             }
 
+            // Check if this looks like a command without the slash
+            CommandResult fuzzyCheck = commandService.checkForMissingSlash(userInput, state);
+            if (fuzzyCheck.wasHandled()) {
+                System.out.println(fuzzyCheck.getResponse());
+                continue;
+            }
+
             // LLM-based processing
             String response = sessionFlow.handleUserInput(userInput, state);
             System.out.println(response);

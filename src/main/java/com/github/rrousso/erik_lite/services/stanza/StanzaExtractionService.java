@@ -27,9 +27,10 @@ import com.github.rrousso.erik_lite.util.JsonCleanupUtil;
  * Extracts state changes from narrative exchanges and updates the database.
  * 
  * erik-lite simplified from erik-core:
- * - Extracts events + character appearances + emergent characters only
+ * - Extracts events + character appearances + emergent characters + character state changes
+ * - Character state changes include: emotional state updates, relationship changes, and name reveals
  * - No facts, knowledge transfers, secrets, tensions, or blueprint updates
- * - No ExtractionApplierRegistry — apply logic inlined
+ * - No ExtractionApplierRegistry — apply logic inlined (events, appearances, emergent chars, state changes)
  * - No ExtractionPromptBuilder — prompt built inline (template in Step 6)
  * 
  * Process:
@@ -65,6 +66,10 @@ public class StanzaExtractionService {
      * Process extraction based on configured frequency and flags.
      * Main entry point for regular extraction during stanza flow.
      *
+     * NOTE: This method modifies the Stanza entity in-memory but does NOT persist it.
+     * The caller is responsible for saving the Stanza after extraction completes.
+     * This allows extraction to participate in the caller's transaction scope.
+     *
      * @return true if extraction was performed, false if skipped
      */
     public boolean processExtraction(
@@ -91,6 +96,10 @@ public class StanzaExtractionService {
     /**
      * Force extraction regardless of frequency configuration.
      * Used for critical moments like beat boundaries.
+     *
+     * NOTE: This method modifies the Stanza entity in-memory but does NOT persist it.
+     * The caller is responsible for saving the Stanza after extraction completes.
+     * This allows extraction to participate in the caller's transaction scope.
      */
     public boolean forceExtraction(Stanza stanza, ConversationHistory history) {
         int exchangeNumber = stanza.getCurrentExchange();

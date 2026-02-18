@@ -28,10 +28,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * Only the LLMClientService is mocked (no real API calls).
  * Everything else — strategies, persistence, extraction, Flyway — runs for real.
  *
- * Tests the flow: VOID planning → START → narration → END
+ * Tests the flows:
+ * - VOID planning → START → narration → END
+ * - VOID planning → START → narration → PAUSE → CONTINUE → END
  *
- * This would have caught the post-migration location bug and any
- * wiring issues between strategies and persistence.
+ * This catches wiring issues between PauseStanzaStrategy, ContinueStanzaStrategy,
+ * SynopsisGeneratorService, and persistence that unit tests cannot detect.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -103,6 +105,33 @@ public class StanzaLifecycleIntegrationTest {
             }
             """;
 
+    /**
+     * Minimal extraction result - empty changes (nothing happened yet).
+     */
+    private static final String EXTRACTION_JSON = """
+            {
+              "events": [],
+              "characterAppearances": [],
+              "emergentCharacters": [],
+              "charactersStateChanges": []
+            }
+            """;
+
+    /**
+     * Quick synopsis for stanza end.
+     */
+    private static final String QUICK_SYNOPSIS_JSON = """
+            {
+              "quickSynopsis": "A young man attended the grand ball with help from his fairy godfather."
+            }
+            """;
+
+    /**
+     * Pause changes summary (what user discussed during pause).
+     */
+    private static final String PAUSE_CHANGES_JSON = """
+            The user wants to make the prince more charming and add romantic tension.
+            """;
 
     @BeforeEach
     void setUp() {
@@ -187,5 +216,116 @@ public class StanzaLifecycleIntegrationTest {
         assertEquals(StanzaStatus.NONE, state.getStanzaStatus());
         assertTrue(result.contains("Nothing to end"),
                 "Expected clear guidance but got: " + result);
+    }
+
+    // ========================================
+    // PAUSE/CONTINUE LIFECYCLE
+    // ========================================
+
+    @Test
+    @DisplayName("Full lifecycle with pause: VOID → START → narration → PAUSE → CONTINUE → END")
+    void testStanzaLifecycleWithPause() throws Exception {
+        // --- SETUP: Mock all LLM responses ---
+        
+        // ANALYTICAL: Flags, initialization, extractions, synopsis
+        when(llmClient.call(eq(ModelType.ANALYTICAL), anyString(), anyString()))
+                .thenReturn("START")  // 1. Flag detection: start
+                .thenReturn(INITIALIZATION_JSON)  // 2. Initialization
+                .thenReturn("NONE")  // 3. Flag detection: first narration exchange
+                .thenReturn(EXTRACTION_JSON)  // 4. Extraction after first exchange
+                .thenReturn("PAUSE")  // 5. Flag detection: pause
+                .thenReturn("NONE")  // 6. Flag detection: void mode exchange after pause
+                .thenReturn("CONTINUE")  // 7. Flag detection: continue
+                .thenReturn(PAUSE_CHANGES_JSON)  // 8. Pause changes summary
+                .thenReturn("NONE")  // 9. Flag detection: narration after continue
+                .thenReturn(EXTRACTION_JSON)  // 10. Extraction after continue
+                .thenReturn("END")  // 11. Flag detection: end
+                .thenReturn(EXTRACTION_JSON)  // 12. Final extraction
+                .thenReturn(QUICK_SYNOPSIS_JSON);  // 13. Synopsis generation
+
+        // NARRATIVE: Erik, narrations, reflection
+        when(llmClient.call(eq(ModelType.NARRATIVE), anyString(), anyString()))
+                .thenReturn("Wonderful! Let me set the scene...")  // 1. Erik confirmation
+                .thenReturn("The grand ballroom glittered with candles.")  // 2. Opening narration
+                .thenReturn("You approach the refreshment table.")  // 3. First action response
+                .thenReturn("Sure, what would you like to adjust?")  // 4. Erik after pause
+                .thenReturn("You notice the prince watching you.")  // 5. Continue narration
+                .thenReturn("The clock strikes midnight. You flee.")  // 6. Closing narration
+                .thenReturn("That was a wonderful story!");  // 7. Erik reflection
+
+        // --- PHASE 1: START ---
+        String startResult = sessionFlowService.handleUserInput("Yes! Let's start", state);
+        
+        assertNotNull(startResult, "Start result should not be null");
+        assertTrue(state.isInStanzaMode(), "Should be in stanza mode after START");
+        assertEquals(StanzaStatus.ACTIVE, state.getStanzaStatus());
+        assertNotNull(state.getActiveStanzaId(), "Should have a database stanza ID");
+        
+        Long stanzaId = state.getActiveStanzaId();
+        Stanza dbStanza = persistenceService.loadStanzaWithRelationships(stanzaId);
+        assertEquals("active", dbStanza.getStatus());
+        assertEquals("cinderella_test", dbStanza.getWorldIdentifier());
+
+        // --- PHASE 2: FIRST NARRATION EXCHANGE ---
+        String narration1 = sessionFlowService.handleUserInput("I walk to the refreshment table", state);
+        
+        assertNotNull(narration1, "First narration should not be null");
+        assertTrue(state.isInStanzaMode(), "Should still be in stanza mode");
+        assertEquals(StanzaStatus.ACTIVE, state.getStanzaStatus());
+
+        // --- PHASE 3: PAUSE ---
+        String pauseResult = sessionFlowService.handleUserInput("((pause))", state);
+        
+        assertNotNull(pauseResult, "Pause result should not be null");
+        assertTrue(state.isInVoidMode(), "Should be in void mode after pause");
+        assertEquals(StanzaStatus.PAUSED, state.getStanzaStatus());
+        assertTrue(pauseResult.contains("[Erik]"), "Should have Erik's response");
+        
+        // Verify database status
+        dbStanza = persistenceService.loadStanzaWithRelationships(stanzaId);
+        assertEquals("paused", dbStanza.getStatus(), "Database should show paused status");
+
+        // --- PHASE 4: VOID MODE EXCHANGE WHILE PAUSED ---
+        String voidExchange = sessionFlowService.handleUserInput("Can we make the prince more charming?", state);
+        
+        assertNotNull(voidExchange, "Void exchange should not be null");
+        assertTrue(state.isInVoidMode(), "Should remain in void mode");
+        assertEquals(StanzaStatus.PAUSED, state.getStanzaStatus());
+        assertTrue(voidExchange.contains("[Erik]"), "Should have Erik's response in void mode");
+
+        // --- PHASE 5: CONTINUE ---
+        String continueResult = sessionFlowService.handleUserInput("continue", state);
+        
+        assertNotNull(continueResult, "Continue result should not be null");
+        assertTrue(state.isInStanzaMode(), "Should be back in stanza mode after continue");
+        assertEquals(StanzaStatus.ACTIVE, state.getStanzaStatus());
+        assertTrue(continueResult.contains("[Narration]"), "Should have narrator's continuation");
+        
+        // Verify database status
+        dbStanza = persistenceService.loadStanzaWithRelationships(stanzaId);
+        assertEquals("active", dbStanza.getStatus(), "Database should show active status");
+
+        // --- PHASE 6: SECOND NARRATION EXCHANGE ---
+        String narration2 = sessionFlowService.handleUserInput("I dance with the prince", state);
+        
+        assertNotNull(narration2, "Second narration should not be null");
+        assertTrue(state.isInStanzaMode(), "Should still be in stanza mode");
+        assertEquals(StanzaStatus.ACTIVE, state.getStanzaStatus());
+
+        // --- PHASE 7: END ---
+        String endResult = sessionFlowService.handleUserInput("((end))", state);
+        
+        assertNotNull(endResult, "End result should not be null");
+        assertTrue(state.isInVoidMode(), "Should be in void mode after end");
+        assertEquals(StanzaStatus.COMPLETED, state.getStanzaStatus());
+        assertTrue(endResult.contains("[STANZA END]"), "Should have stanza end marker");
+        assertTrue(endResult.contains("quick synopsis"), "Should have synopsis");
+        assertTrue(endResult.contains("[Erik]"), "Should have Erik's reflection");
+        
+        // Verify final database status
+        dbStanza = persistenceService.loadStanzaWithRelationships(stanzaId);
+        assertEquals("completed", dbStanza.getStatus(), "Database should show completed status");
+        assertNotNull(dbStanza.getQuickSynopsis(), "Should have quick synopsis in database");
+        assertTrue(dbStanza.getCurrentExchange() > 0, "Should have tracked exchanges");
     }
 }
