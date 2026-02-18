@@ -23,8 +23,15 @@ public class LoadedStanzaMemory {
 
     /** The world identifier (e.g., "cinderella", "teen_wolf", "original") */
     private final String worldIdentifier;
+    
+    /** The unique ID of the source stanza */
+    private final Long sourceStanzaId;
 
     public boolean hasQuickSynopsis() {
         return quickSynopsis != null && !quickSynopsis.isEmpty();
+    }
+    
+    public boolean hasSourceStanzaId() {
+        return sourceStanzaId != null;
     }
 }

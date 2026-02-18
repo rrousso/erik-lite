@@ -35,6 +35,9 @@ public class Stanza {
     @ManyToOne
     @JoinColumn(name = "persona_id", nullable = false)
     private Persona persona;
+    
+    @Column(name = "parent_stanza_id")
+    private Long parentStanzaId;
 
     @Column(name = "world_identifier", length = 100)
     private String worldIdentifier;

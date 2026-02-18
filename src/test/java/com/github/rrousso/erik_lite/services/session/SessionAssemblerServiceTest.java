@@ -100,7 +100,7 @@ public class SessionAssemblerServiceTest {
     void shouldIncludeLoadedStanzaMemoryInVoidContext() {
         SessionState state = new SessionState();
         LoadedStanzaMemory memory = new LoadedStanzaMemory(
-            "narrator context here", "quick synopsis here", "cinderella");
+            "narrator context here", "quick synopsis here", "cinderella", 1L);
         state.setLoadedStanzaMemory(memory);
 
         SessionContext context = service.assembleForVoid(state);

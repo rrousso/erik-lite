@@ -49,35 +49,38 @@ public class StanzaPersistenceService {
      * Called once when a stanza starts.
      */
     @Transactional
-    public Stanza saveInitializedStanza(InitializedStanza initialized, Persona persona) {
+    public Stanza saveInitializedStanza(InitializedStanza initialized, Persona persona, Long parentStanzaId) {
         log.info("[Persistence] Saving initialized stanza for persona: {}", persona.getName());
 
         // 1. Create the main Stanza entity
         Stanza stanza = createStanzaEntity(initialized, persona);
+        
+        // 2. Set parent stanza ID if this is a nested stanza
+        stanza.setParentStanzaId(parentStanzaId);
 
-        // 2. Create the user character
+        // 3. Create the user character
         StanzaCharacter userChar = createUserCharacter(stanza, initialized.getUserCharacter(), persona.getName());
         stanza.getCharacters().add(userChar);
 
-        // 3. Create explicit characters
+        // 4. Create explicit characters
         for (var charData : initialized.getExplicitCharacters()) {
             StanzaCharacter character = createCharacterEntity(stanza, charData, "explicit");
             stanza.getCharacters().add(character);
         }
 
-        // 4. Create likely characters
+        // 5. Create likely characters
         for (var charData : initialized.getLikelyCharacters()) {
             StanzaCharacter character = createCharacterEntity(stanza, charData, "likely");
             stanza.getCharacters().add(character);
         }
 
-        // 5. Create background characters
+        // 6. Create background characters
         for (var bgChar : initialized.getBackgroundCharacters()) {
             StanzaCharacter character = createBackgroundCharacterEntity(stanza, bgChar);
             stanza.getCharacters().add(character);
         }
 
-        // 6. Initialize first beat and save
+        // 7. Initialize first beat and save
         stanza.initializeFirstBeat();
         
         // Set Beat 1 location from first relevant location

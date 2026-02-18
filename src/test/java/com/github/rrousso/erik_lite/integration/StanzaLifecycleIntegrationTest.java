@@ -7,7 +7,9 @@ import static org.mockito.Mockito.*;
 import com.github.rrousso.erik_lite.domain.enums.ModelType;
 import com.github.rrousso.erik_lite.domain.enums.StanzaStatus;
 import com.github.rrousso.erik_lite.domain.models.SessionState;
+import com.github.rrousso.erik_lite.domain.valueobjects.CommandResult;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
+import com.github.rrousso.erik_lite.services.command.CommandService;
 import com.github.rrousso.erik_lite.services.llm.LLMClientService;
 import com.github.rrousso.erik_lite.services.orchestration.SessionFlowService;
 import com.github.rrousso.erik_lite.services.stanza.StanzaPersistenceService;
@@ -46,6 +48,9 @@ public class StanzaLifecycleIntegrationTest {
     
     @Autowired
     private StanzaPersistenceService persistenceService;
+    
+    @Autowired
+    private CommandService commandService;
 
     @MockitoBean
     private LLMClientService llmClient;
@@ -104,7 +109,52 @@ public class StanzaLifecycleIntegrationTest {
               }
             }
             """;
-
+    
+    /**
+     * Initialization JSON for the continuation stanza.
+     * Same world as parent but could have modifications from the planning conversation.
+     * Uses the same worldIdentifier to verify context was carried forward.
+     */
+    private static final String CONTINUATION_INIT_JSON = """
+            {
+              "worldIdentifier": "cinderella_test",
+              "userCharacter": {
+                "publicRole": "The young man from the ball, now known to the court",
+                "privateBackstory": "Still hiding his servant origins",
+                "publiclyVisibleTraits": ["tall", "well-dressed", "more confident"],
+                "currentEmotionalState": "hopeful but cautious"
+              },
+              "explicitCharacters": [
+                {
+                  "name": "Fairy Godfather",
+                  "canonRole": "Magical mentor",
+                  "currentEmotionalState": "pleased with how the ball went",
+                  "relationshipToUser": "Guardian and guide",
+                  "presentInFirstScene": true,
+                  "blueprint": {
+                    "tier1_essentials": "Wise old mentor with dry humor and a silver cane",
+                    "tier2_motivators": "Wants to see the user succeed; fears the magic wearing off",
+                    "tier3_anchors": ["silver-tipped cane", "knowing smile", "faint shimmer around hands"]
+                  }
+                }
+              ],
+              "likelyCharacters": [],
+              "backgroundCharacters": [],
+              "worldContext": {
+                "timeContext": "The morning after the grand ball",
+                "currentWorldState": "The kingdom buzzes with gossip about the mysterious guest",
+                "tone": "romantic fantasy with humor",
+                "supernaturalRules": ["Magic fades at midnight"],
+                "relevantLocations": [
+                  {
+                    "name": "The Servant Quarters",
+                    "description": "A modest room with a view of the palace gardens"
+                  }
+                ]
+              }
+            }
+            """;  
+    
     /**
      * Minimal extraction result - empty changes (nothing happened yet).
      */
@@ -177,6 +227,141 @@ public class StanzaLifecycleIntegrationTest {
         assertEquals("cinderella_test", dbStanza.getWorldIdentifier());
         assertTrue(dbStanza.getCharacters().size() >= 2, "Should have at least user + 1 NPC");
         assertFalse(dbStanza.getBeats().isEmpty(), "Should have at least 1 beat");
+    }
+    
+    // ========================================
+    // STANZA CONTINUATION FROM LOADED PARENT
+    // ========================================
+
+    /**
+     * Tests the continuation flow:
+     * 1. Create and complete a parent stanza (START → narrate → END)
+     * 2. Load the completed parent via /load
+     * 3. Plan a continuation with Erik
+     * 4. START a new stanza — should inherit parent context
+     * 5. Verify new stanza has parentStanzaId set
+     * 6. Verify new stanza has its own characters and world data
+     */
+    @Test
+    @DisplayName("Should start continuation stanza from loaded parent")
+    void shouldStartContinuationStanza() throws Exception {
+
+        // ============================================================
+        // PHASE 1: Create and complete a parent stanza
+        // ============================================================
+
+        // ANALYTICAL calls for Phase 1:
+        // 1. Flag detection → START
+        // 2. Initialization
+        // 3. Flag detection → END
+        // 4. Final extraction
+        // 5. Quick synopsis
+        //
+        // NARRATIVE calls for Phase 1:
+        // 1. Erik confirmation
+        // 2. Opening narration
+        // 3. Closing narration
+        // 4. Erik reflection
+
+        when(llmClient.call(eq(ModelType.ANALYTICAL), anyString(), anyString()))
+                // Phase 1: parent stanza
+                .thenReturn("START")                // 1. Flag: start
+                .thenReturn(INITIALIZATION_JSON)    // 2. Initialization
+                .thenReturn("END")                  // 3. Flag: end
+                .thenReturn(EXTRACTION_JSON)         // 4. Final extraction
+                .thenReturn(QUICK_SYNOPSIS_JSON)     // 5. Quick synopsis
+                // Phase 2: continuation stanza
+                .thenReturn("NONE")                 // 6. Flag: void mode planning
+                .thenReturn("START")                // 7. Flag: start continuation
+                .thenReturn(CONTINUATION_INIT_JSON) // 8. Initialization (with parent context)
+                .thenReturn("END")                  // 9. Flag: end
+                .thenReturn(EXTRACTION_JSON)         // 10. Final extraction
+                .thenReturn(QUICK_SYNOPSIS_JSON);    // 11. Quick synopsis
+
+        when(llmClient.call(eq(ModelType.NARRATIVE), anyString(), anyString()))
+                // Phase 1: parent stanza
+                .thenReturn("Great, let's do this!")             // 1. Erik confirmation
+                .thenReturn("The grand ballroom glittered.")     // 2. Opening narration
+                .thenReturn("The clock struck midnight. Fin.")   // 3. Closing narration
+                .thenReturn("What a lovely story!")              // 4. Erik reflection
+                // Phase 2: continuation stanza
+                .thenReturn("Absolutely, picking up where we left off!") // 5. Erik confirmation
+                .thenReturn("The morning after the ball, you wake.") // 6. Opening narration
+                .thenReturn("And so the next chapter begins.")   // 7. Closing narration
+                .thenReturn("Even better than the first!");      // 8. Erik reflection
+
+        // --- PHASE 1: Start and complete parent stanza ---
+        String startResult = sessionFlowService.handleUserInput("Yes! Let's start", state);
+        assertNotNull(startResult);
+        assertTrue(state.isInStanzaMode(), "Should be in stanza mode after START");
+
+        Long parentStanzaId = state.getActiveStanzaId();
+        assertNotNull(parentStanzaId, "Parent stanza should have a DB ID");
+
+        // End the parent stanza
+        String endResult = sessionFlowService.handleUserInput("((end))", state);
+        assertNotNull(endResult);
+        assertTrue(state.isInVoidMode(), "Should be in void mode after END");
+        assertEquals(StanzaStatus.COMPLETED, state.getStanzaStatus());
+
+        // Verify parent stanza is completed in DB
+        Stanza parentStanza = persistenceService.loadStanzaWithRelationships(parentStanzaId);
+        assertEquals("completed", parentStanza.getStatus());
+        assertNull(parentStanza.getParentStanzaId(), "Parent stanza should have no parent");
+
+        // ============================================================
+        // PHASE 2: Load parent and start continuation
+        // ============================================================
+
+        // Reset state for new session (user would restart the app)
+        // But keep the completed status so we need to clear it for a new stanza
+        state.setStanzaStatus(StanzaStatus.NONE);
+        state.setCompletedStanza(null);
+
+        // Load the parent stanza via /load command
+        CommandResult loadResult = commandService.processCommand("/load " + parentStanzaId, state);
+        assertTrue(loadResult.wasHandled());
+        assertTrue(loadResult.getResponse().contains("Loaded stanza"));
+        assertNotNull(state.getLoadedStanzaMemory(), "Loaded memory should be set");
+
+        // Plan with Erik in void mode
+        String planResult = sessionFlowService.handleUserInput(
+            "Let's continue from where we left off, same world and characters", state);
+        assertNotNull(planResult);
+
+        // Start the continuation stanza
+        String continueStartResult = sessionFlowService.handleUserInput("Let's begin", state);
+        assertNotNull(continueStartResult);
+        assertTrue(state.isInStanzaMode(), 
+            "Should be in stanza mode after continuation START. Got: " + continueStartResult);
+
+        Long childStanzaId = state.getActiveStanzaId();
+        assertNotNull(childStanzaId, "Child stanza should have a DB ID");
+        assertNotEquals(parentStanzaId, childStanzaId, "Child should be a different stanza");
+
+        // Verify child stanza in DB
+        Stanza childStanza = persistenceService.loadStanzaWithRelationships(childStanzaId);
+        assertEquals("active", childStanza.getStatus());
+        assertEquals(parentStanzaId, childStanza.getParentStanzaId(),
+            "Child stanza should reference parent stanza ID");
+        assertFalse(childStanza.getCharacters().isEmpty(), "Child should have characters");
+        assertFalse(childStanza.getBeats().isEmpty(), "Child should have at least 1 beat");
+
+        // Verify loaded memory was cleared after start
+        assertNull(state.getLoadedStanzaMemory(), 
+            "Loaded memory should be cleared after initialization consumed it");
+
+        // End the child stanza to verify full lifecycle works
+        String endChildResult = sessionFlowService.handleUserInput("((end))", state);
+        assertNotNull(endChildResult);
+        assertTrue(state.isInVoidMode(), "Should be in void mode after child END");
+
+        // Verify both stanzas exist independently
+        Stanza finalParent = persistenceService.loadStanzaWithRelationships(parentStanzaId);
+        Stanza finalChild = persistenceService.loadStanzaWithRelationships(childStanzaId);
+        assertEquals("completed", finalParent.getStatus());
+        assertEquals("completed", finalChild.getStatus());
+        assertEquals(parentStanzaId, finalChild.getParentStanzaId());
     }
 
     // ========================================

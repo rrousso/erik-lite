@@ -226,7 +226,8 @@ public class CommandService {
         LoadedStanzaMemory memory = new LoadedStanzaMemory(
             stanza.toNarratorContext(),
             stanza.getQuickSynopsis(),
-            stanza.getWorldIdentifier());
+            stanza.getWorldIdentifier(),
+        	stanza.getId());
 
         state.setLoadedStanzaMemory(memory);
 
@@ -270,6 +271,9 @@ public class CommandService {
 
         sb.append("ID: ").append(activeStanza.getId()).append("\n");
         sb.append("Status: ").append(activeStanza.getStatus()).append("\n");
+        if (activeStanza.getParentStanzaId() != null) {
+            sb.append("Parent Stanza: #").append(activeStanza.getParentStanzaId()).append("\n");
+        }
         sb.append("Current Beat: ").append(activeStanza.getCurrentBeatNumber()).append("\n");
         sb.append("Current Exchange: ").append(activeStanza.getCurrentExchange()).append("\n\n");
 

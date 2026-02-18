@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import com.github.rrousso.erik_lite.domain.enums.StanzaStatus;
 import com.github.rrousso.erik_lite.domain.models.SessionState;
+import com.github.rrousso.erik_lite.domain.valueobjects.LoadedStanzaMemory;
 import com.github.rrousso.erik_lite.dto.initialization.InitializedStanza;
 import com.github.rrousso.erik_lite.persistence.entities.Persona;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
@@ -76,13 +77,23 @@ public class StartStanzaStrategy implements FlowStrategy {
             
             log.debug("Extracting stanza details from planning conversation...");
 
-            // Initialize stanza from planning conversation
-            // TODO: When stanza continuation (/load) is implemented, pass the loaded
-            // stanza here. Currently initializeFromPlanning() expects a Stanza entity,
-            // but SessionState stores LoadedStanzaMemory. Both need updating together.
+            // Load parent stanza entity if user loaded one via /load
+            Stanza parentStanza = null;
+            LoadedStanzaMemory loadedMemory = state.getLoadedStanzaMemory();
+            if (loadedMemory != null && loadedMemory.hasSourceStanzaId()) {
+                try {
+                    parentStanza = persistenceService.loadStanzaWithRelationships(
+                        loadedMemory.getSourceStanzaId());
+                    log.info("Loaded parent stanza {} for continuation", loadedMemory.getSourceStanzaId());
+                } catch (Exception e) {
+                    log.warn("Failed to load parent stanza {} - proceeding without continuation context",
+                        loadedMemory.getSourceStanzaId(), e);
+                }
+            }
+
             InitializedStanza initialized = initializationService.initializeFromPlanning(
-                state.getVoidHistory(), 
-                null
+                state.getVoidHistory(),
+                parentStanza
             );
             
             state.setInitializedStanza(initialized);
@@ -90,7 +101,15 @@ public class StartStanzaStrategy implements FlowStrategy {
             // Persist to database
             try {
                 Persona persona = personaService.getCurrentPersona();
-                Stanza savedStanza = persistenceService.saveInitializedStanza(initialized, persona);
+                
+                Long parentId = (parentStanza != null) ? parentStanza.getId() : null;
+                Stanza savedStanza = persistenceService.saveInitializedStanza(initialized, persona, parentId);
+                
+                // Set parent stanza lineage
+                if (parentStanza != null) {
+                    log.info("New stanza {} created as continuation of parent stanza {}", 
+                        savedStanza.getId(), parentStanza.getId());
+                }
                 
                 Long stanzaId = savedStanza.getId();
                 if (stanzaId == null) {
@@ -108,6 +127,9 @@ public class StartStanzaStrategy implements FlowStrategy {
             String opening = conversationService.converseWithNarrator(state, "Begin the scene.");
             builder.append("\n[Opening Narration] ");
             builder.append(opening);
+            
+            // Clear loaded memory — it's been consumed by initialization
+            state.setLoadedStanzaMemory(null);
             
             log.info("Stanza started successfully");
             return builder.toString();
