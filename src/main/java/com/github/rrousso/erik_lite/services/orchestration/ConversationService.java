@@ -5,6 +5,7 @@ import com.github.rrousso.erik_lite.domain.models.ConversationHistory;
 import com.github.rrousso.erik_lite.domain.models.SessionContext;
 import com.github.rrousso.erik_lite.domain.models.SessionState;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
+import com.github.rrousso.erik_lite.services.chat.ChatPersistenceService;
 import com.github.rrousso.erik_lite.services.llm.LLMClientService;
 import com.github.rrousso.erik_lite.services.prompt.SystemPromptBuilderService;
 import com.github.rrousso.erik_lite.services.session.SessionAssemblerService;
@@ -41,18 +42,21 @@ public class ConversationService {
     private final SessionAssemblerService sessionAssembler;
     private final SynopsisGeneratorService synopsisGenerator;
     private final StanzaPersistenceService persistenceService;
+    private final ChatPersistenceService chatPersistence;
 
     public ConversationService(
             LLMClientService llmClient,
             SystemPromptBuilderService promptBuilder,
             SessionAssemblerService sessionAssembler,
             SynopsisGeneratorService synopsisGenerator,
-            StanzaPersistenceService persistenceService) {
+            StanzaPersistenceService persistenceService,
+            ChatPersistenceService chatPersistence) {
         this.llmClient = llmClient;
         this.promptBuilder = promptBuilder;
         this.sessionAssembler = sessionAssembler;
         this.synopsisGenerator = synopsisGenerator;
         this.persistenceService = persistenceService;
+        this.chatPersistence = chatPersistence;
     }
 
     /**
@@ -79,9 +83,23 @@ public class ConversationService {
                 ? state.getVoidHistory()
                 : state.getStanzaHistory();
 
-        // 5. Update conversation history
+        // 5. Update conversation history (in-memory)
         history.addUserMessage(userInput);
         history.addAssistantMessage(response);
+
+        // 5b. Persist messages to database (dual-write, fail-safe)
+        if (state.getChatId() != null) {
+            try {
+                String modeStr = (mode == ConversationMode.VOID) ? "VOID" : "STANZA";
+                Integer exchangeNum = (mode == ConversationMode.STANZA && state.getActiveStanzaId() != null)
+                        ? state.getStanzaHistory().getCurrentHistorySize() / 2
+                        : null;
+                chatPersistence.saveMessage(state.getChatId(), modeStr, "user", userInput, exchangeNum);
+                chatPersistence.saveMessage(state.getChatId(), modeStr, "assistant", response, exchangeNum);
+            } catch (Exception e) {
+                log.warn("[Chat] Failed to persist messages to database", e);
+            }
+        }
 
         // 6. Generate synopsis (only for STANZA mode)
         if (mode == ConversationMode.STANZA) {

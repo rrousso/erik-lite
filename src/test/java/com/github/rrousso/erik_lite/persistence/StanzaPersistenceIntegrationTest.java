@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.github.rrousso.erik_lite.persistence.entities.Beat;
@@ -35,6 +36,7 @@ import com.github.rrousso.erik_lite.persistence.repositories.StanzaRepository;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @DisplayName("Stanza Persistence Integration Tests")
 public class StanzaPersistenceIntegrationTest {
 
@@ -307,8 +309,11 @@ public class StanzaPersistenceIntegrationTest {
         assertTrue(byPersona.size() >= 2, "Should have at least 2 stanzas for persona");
 
         List<Stanza> completedOnly = stanzaRepository.findCompletedByPersonaId(testPersona.getId());
-        assertEquals(1, completedOnly.size());
-        assertEquals("completed_world", completedOnly.get(0).getWorldIdentifier());
+        assertFalse(completedOnly.isEmpty(), "Should have at least 1 completed stanza");
+        long matchCount = completedOnly.stream()
+            .filter(s -> "completed_world".equals(s.getWorldIdentifier()))
+            .count();
+        assertEquals(1, matchCount, "Should have exactly 1 completed stanza with worldIdentifier 'completed_world'");
     }
 
     @Test

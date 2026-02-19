@@ -1,5 +1,8 @@
 package com.github.rrousso.erik_lite.util;
 
+import java.util.Deque;
+import java.util.ArrayDeque;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -12,9 +15,6 @@ public class JsonCleanupUtil {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /**
-     * Clean markdown code fences from JSON string.
-     */
     public static String cleanJsonResponse(String jsonResponse) {
         if (jsonResponse == null) {
             return null;
@@ -32,7 +32,69 @@ public class JsonCleanupUtil {
             cleaned = cleaned.substring(0, cleaned.length() - 3);
         }
 
-        return cleaned.trim();
+        return repairJson(cleaned.trim());
+    }
+
+    /**
+     * Attempt to repair common LLM JSON structural errors:
+     * - Truncated responses (unclosed arrays/objects)
+     * - Mismatched close markers (} where ] expected, or vice versa)
+     *
+     * Strategy: walk the string tracking open brackets; if we hit a close
+     * marker that doesn't match the top of the stack, replace it with the
+     * correct one; then close any still-open brackets at the end.
+     */
+    static String repairJson(String json) {
+        if (json == null || json.isEmpty()) return json;
+
+        StringBuilder result = new StringBuilder();
+        Deque<Character> stack = new ArrayDeque<>();
+
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+
+            if (c == '"') {
+                result.append(c);
+                i++;
+                while (i < json.length()) {
+                    char sc = json.charAt(i);
+                    result.append(sc);
+                    if (sc == '\\') {
+                        i++; // skip escaped char
+                        if (i < json.length()) result.append(json.charAt(i));
+                    } else if (sc == '"') {
+                        break;
+                    }
+                    i++;
+                }
+                continue;
+            }
+
+            if (c == '{' || c == '[') {
+                stack.push(c);
+                result.append(c);
+            } else if (c == '}' || c == ']') {
+                if (!stack.isEmpty()) {
+                    char expected = stack.peek() == '{' ? '}' : ']';
+                    if (c != expected) {
+                        result.append(expected);
+                        stack.pop();
+                    } else {
+                        result.append(c);
+                        stack.pop();
+                    }
+                }
+            } else {
+                result.append(c);
+            }
+        }
+
+        while (!stack.isEmpty()) {
+            char open = stack.pop();
+            result.append(open == '{' ? '}' : ']');
+        }
+
+        return result.toString();
     }
 
     /**

@@ -33,6 +33,7 @@ public class SessionState {
     private InitializedStanza initializedStanza = null;
     private Long activeStanzaId = null;
     private LoadedStanzaMemory loadedStanzaMemory = null;
+    private Long chatId = null;
 
     public SessionState() {
         this.stanzaHistory = new ConversationHistory();

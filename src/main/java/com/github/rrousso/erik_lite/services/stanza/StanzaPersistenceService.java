@@ -1,5 +1,10 @@
 package com.github.rrousso.erik_lite.services.stanza;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.rrousso.erik_lite.dto.initialization.BackgroundCharacter;
@@ -11,10 +16,6 @@ import com.github.rrousso.erik_lite.persistence.entities.Persona;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
 import com.github.rrousso.erik_lite.persistence.entities.StanzaCharacter;
 import com.github.rrousso.erik_lite.persistence.repositories.StanzaRepository;
-import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 /**
  * Persists stanza state to the database.
@@ -246,7 +247,7 @@ public class StanzaPersistenceService {
      * Load stanza with all lazy relationships eagerly initialized.
      * Used by SessionAssemblerService for building narrator context from DB.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Stanza loadStanzaWithRelationships( Long stanzaId) {
         Stanza stanza = stanzaRepository.findById(stanzaId)
                 .orElseThrow(() -> new IllegalArgumentException("Stanza not found: " + stanzaId));

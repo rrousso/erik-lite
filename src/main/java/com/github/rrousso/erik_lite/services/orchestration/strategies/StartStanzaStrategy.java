@@ -10,6 +10,7 @@ import com.github.rrousso.erik_lite.domain.valueobjects.LoadedStanzaMemory;
 import com.github.rrousso.erik_lite.dto.initialization.InitializedStanza;
 import com.github.rrousso.erik_lite.persistence.entities.Persona;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
+import com.github.rrousso.erik_lite.services.chat.ChatPersistenceService;
 import com.github.rrousso.erik_lite.services.config.PersonaService;
 import com.github.rrousso.erik_lite.services.orchestration.ConversationService;
 import com.github.rrousso.erik_lite.services.stanza.StanzaInitializationService;
@@ -36,16 +37,19 @@ public class StartStanzaStrategy implements FlowStrategy {
     private final StanzaInitializationService initializationService;
     private final StanzaPersistenceService persistenceService;
     private final PersonaService personaService;
+    private final ChatPersistenceService chatPersistence;
     
     public StartStanzaStrategy(
             ConversationService conversationService,
             StanzaInitializationService initializationService,
             StanzaPersistenceService persistenceService,
-            PersonaService personaService) {
+            PersonaService personaService,
+            ChatPersistenceService chatPersistence) {
         this.conversationService = conversationService;
         this.initializationService = initializationService;
         this.persistenceService = persistenceService;
         this.personaService = personaService;
+        this.chatPersistence = chatPersistence;
     }
 
     @Override
@@ -115,8 +119,16 @@ public class StartStanzaStrategy implements FlowStrategy {
                 if (stanzaId == null) {
                     log.error("Stanza was saved but ID is null - this shouldn't happen");
                 } else {
-                    state.setActiveStanzaId(stanzaId);
+                	state.setActiveStanzaId(stanzaId);
                     log.info("Stanza persisted to database with ID: {}", stanzaId);
+
+                    if (state.getChatId() != null) {
+                        try {
+                            chatPersistence.linkStanza(state.getChatId(), savedStanza);
+                        } catch (Exception e) {
+                            log.warn("Failed to link stanza to chat", e);
+                        }
+                    }
                 }
             } catch (Exception e) {
                 log.error("Failed to persist stanza to database - continuing without persistence", e);

@@ -5,6 +5,8 @@ import com.github.rrousso.erik_lite.domain.models.ConversationHistory;
 import com.github.rrousso.erik_lite.persistence.entities.Beat;
 import com.github.rrousso.erik_lite.persistence.entities.Stanza;
 import com.github.rrousso.erik_lite.persistence.entities.StanzaEvent;
+import com.github.rrousso.erik_lite.persistence.entities.SynopsisSnapshot;
+import com.github.rrousso.erik_lite.persistence.repositories.SynopsisSnapshotRepository;
 import com.github.rrousso.erik_lite.services.config.PersonaService;
 import com.github.rrousso.erik_lite.services.config.SynopsisConfigService;
 import com.github.rrousso.erik_lite.services.llm.LLMClientService;
@@ -48,16 +50,19 @@ public class SynopsisGeneratorService {
     private final SystemPromptBuilderService promptBuilder;
     private final SynopsisConfigService synopsisConfig;
     private final PersonaService personaService;
+    private final SynopsisSnapshotRepository synopsisSnapshotRepository;
 
     public SynopsisGeneratorService(
             LLMClientService llmClient,
             SystemPromptBuilderService promptBuilder,
             PersonaService personaService,
-            SynopsisConfigService synopsisConfig) {
+            SynopsisConfigService synopsisConfig,
+            SynopsisSnapshotRepository synopsisSnapshotRepository) {
         this.llmClient = llmClient;
         this.promptBuilder = promptBuilder;
         this.personaService = personaService;
         this.synopsisConfig = synopsisConfig;
+        this.synopsisSnapshotRepository = synopsisSnapshotRepository;
     }
 
     // =========================================================================
@@ -140,6 +145,16 @@ public class SynopsisGeneratorService {
         log.info("[Synopsis] Generated new synopsis ({} chars)", newSynopsis.length());
 
         history.updateSynopsis(newSynopsis, windowSize);
+
+        // Persist synopsis version for revert support
+        try {
+            SynopsisSnapshot snapshot = new SynopsisSnapshot(stanza, stanza.getCurrentExchange(), newSynopsis);
+            synopsisSnapshotRepository.save(snapshot);
+            log.info("[Synopsis] Saved synopsis snapshot at exchange {}", stanza.getCurrentExchange());
+        } catch (Exception e) {
+            log.warn("[Synopsis] Failed to persist synopsis snapshot", e);
+        }
+
         saveSynopsisToFile(newSynopsis, "rolling", ROLLING_SYNOPSIS_DEBUG_FILE);
 
         return newSynopsis;
