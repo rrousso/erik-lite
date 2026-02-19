@@ -7,7 +7,6 @@ import com.github.rrousso.erik_lite.persistence.entities.Stanza;
 import com.github.rrousso.erik_lite.persistence.entities.StanzaEvent;
 import com.github.rrousso.erik_lite.persistence.entities.SynopsisSnapshot;
 import com.github.rrousso.erik_lite.persistence.repositories.SynopsisSnapshotRepository;
-import com.github.rrousso.erik_lite.services.config.PersonaService;
 import com.github.rrousso.erik_lite.services.config.SynopsisConfigService;
 import com.github.rrousso.erik_lite.services.llm.LLMClientService;
 import com.github.rrousso.erik_lite.services.prompt.SystemPromptBuilderService;
@@ -49,18 +48,15 @@ public class SynopsisGeneratorService {
     private final LLMClientService llmClient;
     private final SystemPromptBuilderService promptBuilder;
     private final SynopsisConfigService synopsisConfig;
-    private final PersonaService personaService;
     private final SynopsisSnapshotRepository synopsisSnapshotRepository;
 
     public SynopsisGeneratorService(
             LLMClientService llmClient,
             SystemPromptBuilderService promptBuilder,
-            PersonaService personaService,
             SynopsisConfigService synopsisConfig,
             SynopsisSnapshotRepository synopsisSnapshotRepository) {
         this.llmClient = llmClient;
         this.promptBuilder = promptBuilder;
-        this.personaService = personaService;
         this.synopsisConfig = synopsisConfig;
         this.synopsisSnapshotRepository = synopsisSnapshotRepository;
     }
@@ -129,7 +125,7 @@ public class SynopsisGeneratorService {
         log.info("[Synopsis] Previous synopsis ({} chars)", previousSynopsis.length());
 
         // Fill template
-        String template = promptBuilder.buildRollingSynopsisPrompt(personaService.getUserPersona());
+        String template = promptBuilder.buildRollingSynopsisPrompt();
         String filledPrompt = template
                 .replace("${previousSnapshot}", previousSynopsis)
                 .replace("${extractedEvents}", eventsText)
@@ -185,7 +181,7 @@ public class SynopsisGeneratorService {
                 rollingSynopsis.length(),
                 history.getAllMessages().size());
 
-        String template = promptBuilder.buildQuickSynopsisPrompt(personaService.getUserPersona());
+        String template = promptBuilder.buildQuickSynopsisPrompt();
         String filledPrompt = template
                 .replace("${beatSummaries}", beatSummaries)
                 .replace("${rollingSynopsis}", rollingSynopsis.isEmpty() ? "[No synopsis]" : rollingSynopsis)

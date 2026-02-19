@@ -63,6 +63,20 @@ public class PersonaService {
         }
         return userPersona;
     }
+    
+    /**
+     * Get a minimal persona string for synopsis generation.
+     * Only includes name and pronouns — no physical description.
+     * This prevents demographic details from leaking into synopses.
+     */
+    public String getUserPersonaForSynopsis() {
+        Persona persona = getCurrentPersona();
+        StringBuilder sb = new StringBuilder();
+        sb.append("USER IDENTITY (for pronoun/name use only):\n");
+        appendFieldIf(sb, "Name", persona.getName());
+        appendFieldIf(sb, "Pronouns", persona.getPronouns());
+        return sb.toString();
+    }
 
     /**
      * Get the current persona entity from database.

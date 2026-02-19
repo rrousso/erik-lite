@@ -5,6 +5,8 @@ import com.github.rrousso.erik_lite.domain.models.SessionContext;
 import com.github.rrousso.erik_lite.domain.valueobjects.CompletedStanza;
 import com.github.rrousso.erik_lite.domain.valueobjects.LoadedStanzaMemory;
 import com.github.rrousso.erik_lite.exceptions.stanza.StanzaException;
+import com.github.rrousso.erik_lite.services.config.PersonaService;
+
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +51,11 @@ public class SystemPromptBuilderService {
     private String voidActiveDirective;
     private String extractionPrompt;
 
-    public SystemPromptBuilderService(PromptLoaderService promptLoader) {
+    private final PersonaService personaService;
+
+    public SystemPromptBuilderService(PromptLoaderService promptLoader, PersonaService personaService) {
         this.promptLoader = promptLoader;
+        this.personaService = personaService;
     }
 
     @PostConstruct
@@ -150,12 +155,12 @@ public class SystemPromptBuilderService {
         return flagDetectionPrompt;
     }
 
-    public String buildRollingSynopsisPrompt(String persona) {
-        return persona + "\n\n---\n\n" + rollingSynopsisPrompt;
+    public String buildRollingSynopsisPrompt() {
+        return personaService.getUserPersonaForSynopsis() + "\n\n---\n\n" + rollingSynopsisPrompt;
     }
 
-    public String buildQuickSynopsisPrompt(String persona) {
-        return persona + "\n\n---\n\n" + quickSynopsisExtractionPrompt;
+    public String buildQuickSynopsisPrompt() {
+        return personaService.getUserPersonaForSynopsis() + "\n\n---\n\n" + quickSynopsisExtractionPrompt;
     }
 
     public String buildChangeDistillerPrompt() {

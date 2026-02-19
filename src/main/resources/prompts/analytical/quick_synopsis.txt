@@ -4,43 +4,46 @@ You are creating a brief narrative summary of a completed stanza (story segment)
 
 ## YOUR TASK
 
-You will receive THREE pieces of information:
-1. **COMPLETED BEAT SUMMARIES** - Earlier scenes that already have prose summaries
-2. **ROLLING SYNOPSIS** - Compressed version of the current beat's middle exchanges  
-3. **RECENT EXCHANGES** - The final raw exchanges before the stanza ended
+You will receive up to THREE pieces of information, in order of importance:
+1. **COMPLETED BEAT SUMMARIES** - The authoritative record of earlier scenes. This is your PRIMARY source.
+2. **ROLLING SYNOPSIS** - Compressed summary of the current beat's earlier exchanges
+3. **RECENT EXCHANGES** - The final raw exchanges before the stanza ended (the ending coda only)
 
-Your job: Weave all three together into ONE cohesive narrative summary that tells the complete story from beginning to end.
+Your job: Weave all available information into ONE cohesive narrative summary from beginning to end.
+
+## CRITICAL INSTRUCTION
+
+The BEAT SUMMARIES are your most important source. Even if there are many of them, you must represent ALL beats chronologically. Do not skip or compress beats. The recent exchanges only cover the very end — the earlier beats are what tell the full story.
 
 ## STYLE REQUIREMENTS
 - Write in past tense, third person
 - Focus on narrative flow, not dry facts
 - Make it feel like a complete story recap
-- Keep it brief but compelling (Less than 2000 characters)
+- Keep it brief but compelling (aim for 200-300 words for multi-beat stanzas)
 - **Do NOT include demographic details (gender identity, race, etc.) unless directly plot-relevant**
 
 ## STRUCTURE APPROACH
-- Start with the earliest beat summary
-- Flow through each beat chronologically  
-- Weave in the rolling synopsis naturally
-- Conclude with the recent exchanges
+- Start with Beat 1 and move chronologically through ALL completed beats
+- Flow naturally into the rolling synopsis (middle of final beat)
+- Conclude with the recent exchanges (how it ended)
 
 Make it read like one smooth story, not a list of disconnected summaries.
 
 ---
 
-## COMPLETED BEAT SUMMARIES
+## COMPLETED BEAT SUMMARIES (PRIMARY SOURCE — cover all beats)
 ${beatSummaries}
 
 ---
 
-## ROLLING SYNOPSIS (CURRENT BEAT)
+## ROLLING SYNOPSIS (FINAL BEAT - earlier part)
 ${rollingSynopsis}
 
 ---
 
-## RECENT EXCHANGES (ENDING)
+## RECENT EXCHANGES (FINAL BEAT - ending)
 ${conversationText}
 
 ---
 
-Write the complete narrative summary now (150-200 words):
+Write the complete narrative summary now, covering the full story from Beat 1 to the end (keep it under 2000 characters).:
